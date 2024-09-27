@@ -12,16 +12,18 @@ let package = Package(
             targets: ["LocomoSwift"]),
     ],
     dependencies: [
-        .package(
-            url: "https://github.com/emma-k-alexandra/GTFS.git",
-            .upToNextMajor(from: .init(1, 0, 1))
-        )
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMinor(from: "0.9.19")),
+        .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMinor(from: "1.28.1"))
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "LocomoSwift"),
+            name: "LocomoSwift",
+            dependencies: [
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+                .product(name: "ZIPFoundation", package: "ZIPFoundation")
+            ]),
         .testTarget(
             name: "LocomoSwiftTests",
             dependencies: ["LocomoSwift"]
