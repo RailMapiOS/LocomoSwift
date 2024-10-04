@@ -128,11 +128,15 @@ extension String {
     public func readHeader<FieldType: RawRepresentable>() throws -> [FieldType]
     where FieldType.RawValue == String {
         let components = try self.readRecord()
-        return try components.map { component in
-            if let headerField = FieldType(rawValue: component) {
+        return try components.map {
+            if let headerField = FieldType(rawValue: $0) {
                 return headerField
             } else {
-                throw LSError.invalidFieldType
+                if let fieldType = FieldType(rawValue: "nonstandard") {
+                    return fieldType
+                } else {
+                    throw LSError.invalidFieldType
+                }
             }
         }
     }
