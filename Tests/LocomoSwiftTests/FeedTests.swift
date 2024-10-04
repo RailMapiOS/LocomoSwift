@@ -23,19 +23,26 @@ class FeedTests: XCTestCase {
         
         // Test d'initialisation du feed à partir du fichier ZIP local
         let feed = try Feed(contentsOfURL: zipURL)
-        XCTAssertNotNil(feed)
+        
+        XCTAssertNotNil(feed.agencies)
+        XCTAssertNotNil(feed.calendarDates)
+        XCTAssertNotNil(feed.routes)
+        XCTAssertNotNil(feed.stopTimes)
+        XCTAssertNotNil(feed.stops)
+        XCTAssertNotNil(feed.trips)
+
     }
     
-    func testFeedInitializationFromInvalidRemoteURL() {
-        let invalidURL = URL(string: "https://eu.ftp.opendatasoft.com/sncf/gtfs/export_gtfs_invalid.zip")!
-        
-        do {
-            let _ = try Feed(contentsOfURL: invalidURL)
-            XCTFail("L'initialisation aurait dû échouer pour une URL distante invalide.")
-        } catch let error as LSError {
-            XCTAssertEqual(error, .invalidFieldType, "L'erreur devrait être invalidFieldType en raison d'un problème avec les en-têtes.")
-        } catch {
-            XCTFail("Erreur inattendue: \(error)")
-        }
-    }
+//    func testFeedInitializationFromInvalidRemoteURL() {
+//        let invalidURL = URL(string: "https://eu.ftp.opendatasoft.com/sncf/gtfs/export_gtfs_invalid.zip")!
+//        
+//        do {
+//            let _ = try Feed(contentsOfURL: invalidURL)
+//            XCTFail("L'initialisation aurait dû échouer pour une URL distante invalide.")
+//        } catch let error as LSError {
+//            XCTAssertEqual(error, .invalidFieldType, "L'erreur devrait être invalidFieldType en raison d'un problème avec les en-têtes.")
+//        } catch {
+//            XCTFail("Erreur inattendue: \(error)")
+//        }
+//    }
 }

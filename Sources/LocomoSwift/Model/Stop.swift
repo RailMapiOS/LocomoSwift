@@ -274,7 +274,6 @@ public struct Stops: Identifiable {
       self.stops.reserveCapacity(records.count - 1)
       for stopRecord in records[1 ..< records.count] {
         let stop = try Stop(from: String(stopRecord), using: headerFields)
-                print(stop)
         self.add(stop)
       }
     } catch let error {

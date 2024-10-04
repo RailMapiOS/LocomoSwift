@@ -108,16 +108,6 @@ public struct Feed: Identifiable {
         return agencies?.first
     }
     
-    /// Initializes an empty feed.
-    private init() {
-        self.agencies = nil
-        self.routes = nil
-        self.stops = nil
-        self.trips = nil
-        self.stopTimes = nil
-        self.calendarDates = nil
-    }
-    
     /// Initializes a `Feed` by loading data from the specified URL.
     ///
     /// If the URL points to a ZIP file, it is downloaded and extracted before loading the data.
@@ -127,24 +117,26 @@ public struct Feed: Identifiable {
         let threadSafeFileManager = ThreadSafeFileManager()
         var directoryURL: URL = url
         
-        // Check if the URL is a ZIP file and handle extraction
         if url.pathExtension == "zip" {
             print("ZIP file detected, attempting download and extraction.")
             
+            let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+            let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
+            
+            let group = DispatchGroup()
+            group.enter()
+            
             if url.isFileURL {
-                // If the URL is a local file, extract it directly
-                let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+                // Extraction directe du fichier ZIP local
                 try threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
                 print("Extraction successful at: \(tempDirectoryURL.path)")
                 directoryURL = tempDirectoryURL
+                group.leave()
             } else {
-                // If the URL is remote, download the file first
-                let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
-                let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
-                
+                // Téléchargement du fichier ZIP distant
                 URLSession.shared.downloadTaskAsyncCompat(with: url) { result in
+                    defer { group.leave() }
                     switch result {
                     case .success(let (downloadedFileURL, response)):
                         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
@@ -156,16 +148,21 @@ public struct Feed: Identifiable {
                                 print("Error during file move or extraction: \(error)")
                             }
                         } else {
-                            print("Download failed with invalid response.")
+                            print("Download failed with invalid response: \(String(describing: response))")
                         }
                     case .failure(let error):
                         print("Download error: \(error.localizedDescription)")
                     }
                 }
             }
+
+            // Attendre que le téléchargement et l'extraction soient terminés avant de continuer
+            group.wait()
+
+            // Une fois l'extraction terminée, on continue avec le chargement des fichiers GTFS
+            directoryURL = tempDirectoryURL
         }
         
-        // Assume the necessary files are in the extracted or original directory
         let agencyFileURL = directoryURL.appendingPathComponent("agency.txt")
         let routesFileURL = directoryURL.appendingPathComponent("routes.txt")
         let stopsFileURL = directoryURL.appendingPathComponent("stops.txt")
@@ -173,7 +170,7 @@ public struct Feed: Identifiable {
         let stopTimesFileURL = directoryURL.appendingPathComponent("stop_times.txt")
         let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
         
-        // Load the various sections of the feed
+        // Charger les sections du flux
         self.agencies = try Agencies(from: agencyFileURL)
         self.routes = try Routes(from: routesFileURL)
         self.stops = try Stops(from: stopsFileURL)

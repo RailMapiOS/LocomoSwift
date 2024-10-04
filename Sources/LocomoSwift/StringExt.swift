@@ -88,25 +88,25 @@ extension String {
      final field).
    - Tag: String-readRecord
    */
-  public func readRecord() throws -> [String] {
-    var remainder = self[..<self.endIndex]
-    var result: [String] = []
-    do {
-      while !remainder.isEmpty {
-        try result.append(remainder.nextField())
-      }
+    public func readRecord() throws -> [String] {
+        var remainder = self[..<self.endIndex]
+        var result: [String] = []
+        do {
+            while !remainder.isEmpty {
+                try result.append(remainder.nextField())
+            }
             // In the case that the record ends with a comma, then there is
             // an extra field that was not detected by `nextField` and we
             // add it as an empty string
             if self.last == "," {
                 result.append("")
             }
-                    
-    } catch let error {
-      throw error
+            
+        } catch let error {
+            throw error
+        }
+        return result
     }
-    return result
-  }
 
   /**
    Returns all GTFS header fields contained within `self`.
