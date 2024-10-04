@@ -1,6 +1,6 @@
 //
 //  StringExt.swift
-//  RailMapAPI
+//  LocomoSwift
 //
 //  Created by Jérémie Patot on 20/09/2024.
 //
@@ -414,20 +414,22 @@ extension String {
     instance[keyPath: path] = locationDegrees
   }
 
-  func assignLocaleTo<InstanceType, FieldType>(
+    func assignLocaleTo<InstanceType, FieldType>(
         _ instance: inout InstanceType,
         for field: FieldType
     ) throws where FieldType: KeyPathVending {
-    guard let path = field.path as? WritableKeyPath<InstanceType, Locale?>
-        else {
-      throw LSAssignError.invalidPath
-    }
+        guard let path = field.path as? WritableKeyPath<InstanceType, Locale?> else {
+            throw LSAssignError.invalidPath
+        }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
-    let locale: Locale? = Locale(identifier: trimmed)
-    instance[keyPath: path] = locale
-  }
-
-  // Remember to test passing an optional to a non-optional value assign.
+        guard !trimmed.isEmpty else {
+            instance[keyPath: path] = nil
+            return
+        }
+        instance[keyPath: path] = Locale(identifier: trimmed)
+    }
+    
+    // Remember to test passing an optional to a non-optional value assign.
   /**
    - Tag: String-assignRouteTypeTo
    */
