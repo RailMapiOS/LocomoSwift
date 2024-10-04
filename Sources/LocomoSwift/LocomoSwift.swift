@@ -186,14 +186,14 @@ public struct Feed: Identifiable {
 
 extension URLSession {
     /// Télécharge un fichier de manière asynchrone en utilisant completion handlers pour compatibilité iOS/iPadOS/macOS
-    func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), Error>) -> Void) {
+    func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), LSError>) -> Void) {
         let task = self.downloadTask(with: url) { downloadedFileURL, response, error in
-            if let error = error {
-                completion(.failure(error))
+            if let error = error as NSError?, error.domain == NSURLErrorDomain {
+                completion(.failure(.downloadFailed))
             } else if let downloadedFileURL = downloadedFileURL {
                 completion(.success((downloadedFileURL, response)))
             } else {
-                completion(.failure(LSError.downloadFailed))
+                completion(.failure(.downloadFailed))
             }
         }
         task.resume()

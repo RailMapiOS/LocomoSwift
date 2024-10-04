@@ -125,17 +125,17 @@ extension String {
      final field).
    - Tag: String-readHeader
    */
-  public func readHeader<FieldType: RawRepresentable>() throws -> [FieldType]
+    public func readHeader<FieldType: RawRepresentable>() throws -> [FieldType]
     where FieldType.RawValue == String {
-    let components = try self.readRecord()
-        return components.map {
-            if let headerField = FieldType(rawValue: $0) {
+        let components = try self.readRecord()
+        return try components.map { component in
+            if let headerField = FieldType(rawValue: component) {
                 return headerField
             } else {
-                return FieldType(rawValue: "nonstandard")!
-      }
+                throw LSError.invalidFieldType
+            }
+        }
     }
-  }
 
   /**
    Return all GTFS records contained within `self`.

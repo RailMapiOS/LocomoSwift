@@ -99,13 +99,26 @@ class StringExtensionsTests: XCTestCase {
     //MARK: -Tests pour readHeader()
     
     enum GTFSField: String {
-        case field1, field2, nonstandard
+        case field1, field2
     }
     
     func testReadHeader() throws {
         let input = "field1,field2,unknown"
+        
+        do {
+            let result: [GTFSField] = try input.readHeader()
+            XCTFail("L'initialisation aurait dû échouer avec un champ d'en-tête non valide.")
+        } catch let error as LSError {
+            XCTAssertEqual(error, .invalidFieldType, "L'erreur devrait être invalidFieldType pour le champ d'en-tête non reconnu.")
+        } catch {
+            XCTFail("Erreur inattendue: \(error)")
+        }
+    }
+    
+    func testReadHeaderWithValidFields() throws {
+        let input = "field1,field2"
         let result: [GTFSField] = try input.readHeader()
-        XCTAssertEqual(result, [.field1, .field2, .nonstandard])
+        XCTAssertEqual(result, [.field1, .field2], "Les champs d'en-tête devraient correspondre aux valeurs valides.")
     }
     
     //MARK: -Tests pour assignStringTo

@@ -26,7 +26,10 @@ let package = Package(
             ]),
         .testTarget(
             name: "LocomoSwiftTests",
-            dependencies: ["LocomoSwift"]
+            dependencies: ["LocomoSwift"],
+            resources: [
+                .copy("Resources/export_gtfs_voyages.zip")
+            ]
         ),
     ]
 )
