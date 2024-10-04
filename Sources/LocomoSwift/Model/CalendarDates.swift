@@ -14,12 +14,15 @@ public enum CalendarDatesField: String, Hashable, KeyPathVending, Sendable {
     case serviceID = "service_id"
     case date = "date"
     case exceptionType = "exception_type"
+    /// Used when a nonstandard field is found within a GTFS feed.
+    case nonstandard = "nonstandard"
     
     internal var path: AnyKeyPath {
         switch self {
         case .serviceID: return \CalendarDate.serviceID
         case .date: return \CalendarDate.date
         case .exceptionType: return \CalendarDate.exceptionType
+        case .nonstandard: return \CalendarDate.nonstandard
         }
     }
 }
@@ -32,6 +35,7 @@ public struct CalendarDate: Hashable, Identifiable, Sendable {
     public var serviceID: LSID
     public var date: Date
     public var exceptionType: Int
+    public var nonstandard: String? = nil
     
     public init(serviceID: String, date: Date, exceptionType: Int) {
         self.serviceID = serviceID
@@ -65,6 +69,8 @@ public struct CalendarDate: Hashable, Identifiable, Sendable {
                 }
             case .exceptionType:
                 self.exceptionType = Int(field) ?? 0
+            case .nonstandard:
+                continue
             }
         }
     }
