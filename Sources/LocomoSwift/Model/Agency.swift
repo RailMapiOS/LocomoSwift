@@ -24,7 +24,7 @@ import Foundation
 /// ```swift
 ///   let gtfsField = AgencyField.locale.rawValue  //  Returns "agency_lang"
 /// ```
-public enum AgencyField: String, Hashable, KeyPathVending {
+public enum AgencyField: String, Hashable, KeyPathVending, Sendable {
   /// Agency ID field.
   case agencyID = "agency_id"
   /// Agency name field.

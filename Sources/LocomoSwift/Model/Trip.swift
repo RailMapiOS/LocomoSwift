@@ -10,7 +10,7 @@ import Foundation
 // MARK: TripField
 
 /// All fields that may appear within a `Trip` record.
-public enum TripField: String, Hashable, KeyPathVending {
+public enum TripField: String, Hashable, KeyPathVending, Sendable {
   /// Route ID field.
   case routeID = "route_id"
   /// Service ID field.

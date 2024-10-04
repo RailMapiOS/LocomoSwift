@@ -83,20 +83,32 @@ public enum LSSomethingError: Error {
     case noDataRecordsFound
 }
 
+/// A struct representing a feed of transit data.
+///
+/// A `Feed` contains various types of data related to agencies, routes, stops, trips, and more.
 /// - Tag: Feed
 public struct Feed: Identifiable {
+    /// A unique identifier for the feed.
     public let id = UUID()
+    /// Agencies associated with the feed.
     public var agencies: Agencies?
+    /// Routes associated with the feed.
     public var routes: Routes?
+    /// Stops associated with the feed.
     public var stops: Stops?
+    /// Trips associated with the feed.
     public var trips: Trips?
+    /// Stop times associated with the feed.
     public var stopTimes: StopTimes?
+    /// Calendar dates associated with the feed.
     public var calendarDates: CalendarDates?
-    
+
+    /// The first agency found in the feed, if any.
     public var agency: Agency? {
         return agencies?.first
     }
     
+    /// Initializes an empty feed.
     private init() {
         self.agencies = nil
         self.routes = nil
@@ -106,159 +118,85 @@ public struct Feed: Identifiable {
         self.calendarDates = nil
     }
     
+    /// Initializes a `Feed` by loading data from the specified URL.
+    ///
+    /// If the URL points to a ZIP file, it is downloaded and extracted before loading the data.
+    /// - Parameter url: The URL to load the feed from.
+    /// - Throws: An error if the download or extraction fails, or if the feed cannot be initialized.
     public init(contentsOfURL url: URL) throws {
-           let fileManager = FileManager.default
-           var directoryURL: URL = url
-           
-           // Si l'URL est un fichier ZIP distant, télécharger puis extraire
-           if url.pathExtension == "zip" {
-               print("Fichier ZIP détecté, tentative de téléchargement et extraction.")
-               
-               if url.isFileURL {
-                   // Si c'est un fichier local .zip, l'extraire directement
-                   let tempDirectoryURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                   try fileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true, attributes: nil)
-                   try fileManager.unzipItem(at: url, to: tempDirectoryURL)
-                   print("Extraction réussie dans le répertoire : \(tempDirectoryURL.path)")
-                   directoryURL = tempDirectoryURL
-               } else {
-                   // Si c'est une URL distante, télécharger le fichier
-                   let tempDirectoryURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                   try fileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true, attributes: nil)
-                   
-                   // Télécharger le fichier ZIP
-                   let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
-                   let (downloadedFileURL, response) = try URLSession.shared.downloadTaskSync(with: url)
-                   
-                   guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                       throw LSError.downloadFailed
-                   }
-                   
-                   // Déplacer le fichier téléchargé dans le répertoire temporaire
-                   try fileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
-                   
-                   // Extraire le fichier ZIP
-                   try fileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
-                   print("Extraction réussie dans le répertoire : \(tempDirectoryURL.path)")
-                   directoryURL = tempDirectoryURL
-               }
-           }
+        let threadSafeFileManager = ThreadSafeFileManager()
+        var directoryURL: URL = url
+        
+        // Check if the URL is a ZIP file and handle extraction
+        if url.pathExtension == "zip" {
+            print("ZIP file detected, attempting download and extraction.")
+            
+            if url.isFileURL {
+                // If the URL is a local file, extract it directly
+                let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+                try threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
+                print("Extraction successful at: \(tempDirectoryURL.path)")
+                directoryURL = tempDirectoryURL
+            } else {
+                // If the URL is remote, download the file first
+                let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+                let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
+                
+                URLSession.shared.downloadTaskAsyncCompat(with: url) { result in
+                    switch result {
+                    case .success(let (downloadedFileURL, response)):
+                        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                            do {
+                                try threadSafeFileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
+                                try threadSafeFileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
+                                print("Extraction successful at: \(tempDirectoryURL.path)")
+                            } catch {
+                                print("Error during file move or extraction: \(error)")
+                            }
+                        } else {
+                            print("Download failed with invalid response.")
+                        }
+                    case .failure(let error):
+                        print("Download error: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        
+        // Assume the necessary files are in the extracted or original directory
+        let agencyFileURL = directoryURL.appendingPathComponent("agency.txt")
+        let routesFileURL = directoryURL.appendingPathComponent("routes.txt")
+        let stopsFileURL = directoryURL.appendingPathComponent("stops.txt")
+        let tripsFileURL = directoryURL.appendingPathComponent("trips.txt")
+        let stopTimesFileURL = directoryURL.appendingPathComponent("stop_times.txt")
+        let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
+        
+        // Load the various sections of the feed
+        self.agencies = try Agencies(from: agencyFileURL)
+        self.routes = try Routes(from: routesFileURL)
+        self.stops = try Stops(from: stopsFileURL)
+        self.trips = try Trips(from: tripsFileURL)
+        self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: self.agencies?.first?.timeZone ?? TimeZone(secondsFromGMT: 0)!)
+        self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
+    }
+}
 
-           // Assumer que les fichiers nécessaires se trouvent dans le répertoire final (extrait ou original)
-           let agencyFileURL = directoryURL.appendingPathComponent("agency.txt")
-           let routesFileURL = directoryURL.appendingPathComponent("routes.txt")
-           let stopsFileURL = directoryURL.appendingPathComponent("stops.txt")
-           let tripsFileURL = directoryURL.appendingPathComponent("trips.txt")
-           let stopTimesFileURL = directoryURL.appendingPathComponent("stop_times.txt")
-           let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
-           
-           // Lire et initialiser les différentes sections du feed
-           self.agencies = try Agencies(from: agencyFileURL)
-           self.routes = try Routes(from: routesFileURL)
-           self.stops = try Stops(from: stopsFileURL)
-           self.trips = try Trips(from: tripsFileURL)
-           self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: self.agencies?.first?.timeZone ?? TimeZone(secondsFromGMT: 0)!)
-           self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
-       }
-   }
 
-   extension URLSession {
-       /// Télécharge un fichier de manière synchrone (bloque le thread courant)
-       func downloadTaskSync(with url: URL) throws -> (URL, URLResponse?) {
-           let semaphore = DispatchSemaphore(value: 0)
-           var tempFileURL: URL?
-           var response: URLResponse?
-           var downloadError: Error?
+extension URLSession {
+    /// Télécharge un fichier de manière asynchrone en utilisant completion handlers pour compatibilité iOS/iPadOS/macOS
+    func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), Error>) -> Void) {
+        let task = self.downloadTask(with: url) { downloadedFileURL, response, error in
+            if let error = error {
+                completion(.failure(error))
+            } else if let downloadedFileURL = downloadedFileURL {
+                completion(.success((downloadedFileURL, response)))
+            } else {
+                completion(.failure(LSError.downloadFailed))
+            }
+        }
+        task.resume()
+    }
+}
 
-           let task = self.downloadTask(with: url) { url, urlResponse, error in
-               tempFileURL = url
-               response = urlResponse
-               downloadError = error
-               semaphore.signal()
-           }
-           task.resume()
-           
-           _ = semaphore.wait(timeout: .distantFuture)
-           
-           if let error = downloadError {
-               throw error
-           }
-           
-           guard let fileURL = tempFileURL else {
-               throw LSError.downloadFailed
-           }
-           
-           return (fileURL, response)
-       }
-   }
-
-//public static func loadFromZipURL(_ zipURLString: String, completion: @escaping (Result<Feed, Error>) -> Void) {
-//    // Impression pour le début de l'opération
-//    print("Début du téléchargement à partir de l'URL : \(zipURLString)")
-//
-//    guard let zipURL = URL(string: zipURLString) else {
-//        print("Erreur : URL invalide")
-//        completion(.failure(LSError.invalidURL))
-//        return
-//    }
-//
-//    let tempDirectoryURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-//
-//    // Impression pour la création du répertoire temporaire
-//    print("Répertoire temporaire créé : \(tempDirectoryURL.path)")
-//
-//    // Téléchargement du fichier ZIP avec URLSession et completionHandler
-//    let session = URLSession.shared
-//    let request = URLRequest(url: zipURL)
-//
-//    let task = session.downloadTask(with: request) { (location, response, error) in
-//        // Gestion des erreurs de téléchargement
-//        if let error = error {
-//            print("Erreur lors du téléchargement : \(error.localizedDescription)")
-//            completion(.failure(error))
-//            return
-//        }
-//
-//        guard let location = location else {
-//            print("Erreur : le fichier temporaire de téléchargement est introuvable.")
-//            completion(.failure(LSError.downloadFailed))
-//            return
-//        }
-//
-//        // Impression de l'emplacement temporaire du fichier
-//        print("Fichier téléchargé temporairement à : \(location.path)")
-//
-//        do {
-//            let fileManager = FileManager.default
-//            // Crée un répertoire temporaire pour extraire le ZIP
-//            try fileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true, attributes: nil)
-//            print("Répertoire temporaire pour l'extraction créé : \(tempDirectoryURL.path)")
-//
-//            let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
-//
-//            // Déplace le fichier temporaire téléchargé dans le répertoire contrôlé
-//            print("Tentative de déplacement du fichier temporaire à : \(tempFileURL.path)")
-//            try fileManager.moveItem(at: location, to: tempFileURL)
-//            print("Fichier déplacé avec succès à : \(tempFileURL.path)")
-//
-//            // Utilise unzipItem pour extraire l'archive ZIP
-//            print("Tentative d'extraction de l'archive ZIP à : \(tempDirectoryURL.path)")
-//            try fileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
-//            print("Extraction réussie dans le répertoire : \(tempDirectoryURL.path)")
-//
-//            // Initialisation du Feed avec les fichiers extraits
-//            let feed = try Feed(contentsOfURL: tempDirectoryURL)
-//            print("Feed initialisé avec succès")
-//            completion(.success(feed))
-//
-//        } catch {
-//            print("Erreur lors de l'extraction de l'archive ZIP ou de l'initialisation du feed : \(error.localizedDescription)")
-//            completion(.failure(LSError.extractionFailed))
-//        }
-//    }
-//
-//    // Lance la tâche de téléchargement
-//    print("Lancement de la tâche de téléchargement")
-//    task.resume()
-//}
-//

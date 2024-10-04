@@ -25,7 +25,7 @@ import CoreGraphics
 /// ```swift
 ///   let gtfsField = RouteField.details.rawValue  //  Returns "route_desc"
 /// ```
-public enum RouteField: String, Hashable, KeyPathVending {
+public enum RouteField: String, Hashable, KeyPathVending, Sendable {
   /// Route ID field.
   case routeID = "route_id"
   /// Agency ID field.

@@ -25,7 +25,7 @@ import CoreLocation
 /// ```swift
 ///   let gtfsField = RouteField.details.rawValue  //  Returns "route_desc"
 /// ```
-public enum StopField: String, Hashable, KeyPathVending {
+public enum StopField: String, Hashable, KeyPathVending, Sendable {
   /// Stop ID field.
   case stopID = "stop_id"
   /// Stop code field.

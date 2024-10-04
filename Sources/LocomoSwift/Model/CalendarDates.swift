@@ -10,7 +10,7 @@ import Foundation
 // MARK: CalendarDatesField
 
 /// Enum pour les champs du fichier `calendar_dates.txt`
-public enum CalendarDatesField: String, Hashable, KeyPathVending {
+public enum CalendarDatesField: String, Hashable, KeyPathVending, Sendable {
     case serviceID = "service_id"
     case date = "date"
     case exceptionType = "exception_type"
@@ -27,7 +27,7 @@ public enum CalendarDatesField: String, Hashable, KeyPathVending {
 // MARK: - CalendarDate
 
 /// Représente une exception de service pour une date donnée
-public struct CalendarDate: Hashable, Identifiable {
+public struct CalendarDate: Hashable, Identifiable, Sendable {
     public var id = UUID()  // Propriété initialisée
     public var serviceID: LSID
     public var date: Date
@@ -80,7 +80,7 @@ public struct CalendarDate: Hashable, Identifiable {
 // MARK: - CalendarDates
 
 /// Un ensemble d'exceptions de service pour différentes dates
-public struct CalendarDates: Identifiable, RandomAccessCollection {
+public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
     public var id = UUID()
     public var startIndex: Int { return dates.startIndex }
     public var endIndex: Int { return dates.endIndex }

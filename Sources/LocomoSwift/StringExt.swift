@@ -43,13 +43,13 @@ extension Substring {
     case "\"":
       removeFirst()
       guard let nextQuote = firstIndex(of: "\"") else {
-        throw TransitError.quoteExpected
+        throw LSError.quoteExpected
       }
       let field = prefix(upTo: nextQuote)
       self = self[index(after: nextQuote)...]
       if !isEmpty {
         let comma = removeFirst()
-        if comma != "," { throw TransitError.commaExpected }
+        if comma != "," { throw LSError.commaExpected }
       }
       return String(field)
         case ",":
@@ -215,7 +215,7 @@ extension String {
     throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, String>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
     instance[keyPath: path] = self
   }
@@ -230,7 +230,7 @@ extension String {
     throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, String?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         guard self.count > 0 else {
             instance[keyPath: path] = nil
@@ -245,12 +245,12 @@ extension String {
     throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, UInt>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
     guard let uInt = UInt(trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = uInt
   }
@@ -265,7 +265,7 @@ extension String {
     throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, UInt?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -274,7 +274,7 @@ extension String {
         }
     guard let uInt = UInt(self)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = uInt
   }
@@ -289,12 +289,12 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, URL>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
     guard let url = URL(string: trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = url
   }
@@ -309,7 +309,7 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, URL?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -318,7 +318,7 @@ extension String {
         }
     guard let url = URL(string: trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = url
   }
@@ -333,12 +333,12 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, TimeZone>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
     guard let timeZone = TimeZone(identifier: trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = timeZone
   }
@@ -352,7 +352,7 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, TimeZone?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -361,7 +361,7 @@ extension String {
         }
     guard let timeZone = TimeZone(identifier: self)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = timeZone
   }
@@ -376,7 +376,7 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, CGColor?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -385,7 +385,7 @@ extension String {
         }
     guard let color = trimmed.color
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = color
   }
@@ -400,7 +400,7 @@ extension String {
     guard let path = field.path
                         as? WritableKeyPath<InstanceType, CLLocationDegrees?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -409,7 +409,7 @@ extension String {
         }
     guard let locationDegrees = Double(trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = locationDegrees
   }
@@ -420,7 +420,7 @@ extension String {
     ) throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, Locale?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
     let locale: Locale? = Locale(identifier: trimmed)
@@ -437,12 +437,12 @@ extension String {
   throws where FieldType: KeyPathVending {
     guard let path = field.path as? WritableKeyPath<InstanceType, RouteType>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
     guard let routeType = Route.routeTypeFrom(string: trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = routeType
   }
@@ -457,7 +457,7 @@ extension String {
     guard let path = field.path
                         as? WritableKeyPath<InstanceType, PickupDropOffPolicy?>
         else {
-      throw TransitAssignError.invalidPath
+      throw LSAssignError.invalidPath
     }
         let trimmed = self.trimmingCharacters(in: .whitespaces)
         guard trimmed.count > 0 else {
@@ -467,7 +467,7 @@ extension String {
     guard let pickupDropOffPolicy =
                         Route.pickupDropOffPolicyFrom(string: trimmed)
         else {
-      throw TransitAssignError.invalidValue
+      throw LSAssignError.invalidValue
     }
     instance[keyPath: path] = pickupDropOffPolicy
   }
