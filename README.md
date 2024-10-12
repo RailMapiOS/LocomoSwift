@@ -2,7 +2,7 @@
 
 <img src="https://github.com/user-attachments/assets/4a4a8f7a-360f-4b5d-ac4b-c3e9c54cae7d" alt="LocomoSwift Logo" width="150" align="right">
 
-LocomoSwift is a Swift package built for easy integration of SNCF's GTFS data, with added support for handling GTFS feeds from `.zip` URLs. This project builds on top of the original [Transit](https://github.com/) package, with enhancements tailored for loading and processing GTFS datasets from remote sources. Many thanks to the Transit team for their foundational work.
+LocomoSwift is a Swift package built for easy integration of SNCF's GTFS data ([General Transit Feed Specification Reference](https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md)), with added support for handling GTFS feeds from `.zip` URLs. This project builds on top of the original [Transit](https://github.com/richwolf/transit) package, with enhancements tailored for loading and processing GTFS datasets from remote sources. Many thanks to the Transit team for their foundational work.
 
 ## Overview
 
