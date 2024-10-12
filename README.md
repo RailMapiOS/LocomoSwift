@@ -49,6 +49,10 @@ LocomoSwift is available via **Swift Package Manager (SPM)**. To add it to your 
 LocomoSwift makes it easy to load GTFS data from a URL pointing to a `.zip` archive. Here’s an example of how to create a `Feed` instance from a remote `.zip` file and access key transit information such as agencies, routes, and stops:
 
 ```swift
+// Load a GTFS feed from a folder
+let feedURL = URL(fileURLWithPath: "path-to-folder-containing-GTFS-datasets"!)
+let feed = Feed(contentsOfURL: feedURL)
+
 // Load a GTFS feed from a URL
 let feedURL = URL(string: "https://example.com/gtfs.zip")!
 let feed = Feed(contentsOfURL: feedURL)
