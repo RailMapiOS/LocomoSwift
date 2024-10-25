@@ -289,3 +289,9 @@ extension Stops: Sequence {
     return stops.makeIterator()
   }
 }
+
+extension Stops {
+    public init(_ stops: [Stop]) {
+        self.stops = stops
+    }
+}

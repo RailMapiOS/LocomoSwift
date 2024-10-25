@@ -108,6 +108,13 @@ public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
         }
     }
     
+    init<S: Sequence>(_ sequence: S)
+    where S.Iterator.Element == CalendarDate {
+      for date in sequence {
+        self.add(date)
+      }
+    }
+    
     /// Initialisation à partir d'un fichier GTFS
     public init(from url: URL) throws {
         let records = try String(contentsOf: url).splitRecords()
@@ -124,3 +131,18 @@ public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
     }
 }
 
+extension CalendarDates: Sequence {
+
+    public typealias Iterator = IndexingIterator<[CalendarDate]>
+
+  public func makeIterator() -> Iterator {
+    return dates.makeIterator()
+  }
+
+}
+
+extension CalendarDates {
+    init(_ calendarDates: [CalendarDate]) {
+        self.dates = calendarDates
+    }
+}

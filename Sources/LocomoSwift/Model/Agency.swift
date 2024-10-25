@@ -284,3 +284,9 @@ extension Agencies: ExpressibleByArrayLiteral {
   }
     
 }
+
+extension Agencies {
+    init(_ agencies: [Agency]) {
+        self.agencies = agencies
+    }
+}

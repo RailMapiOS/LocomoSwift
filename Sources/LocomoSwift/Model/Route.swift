@@ -299,3 +299,9 @@ extension Routes: Sequence {
   }
 
 }
+
+extension Routes {
+    init(_ routes: [Route]) {
+        self.routes = routes
+    }
+}

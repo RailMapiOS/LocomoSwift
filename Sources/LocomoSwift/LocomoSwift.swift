@@ -102,65 +102,96 @@ public struct Feed: Identifiable {
     public var stopTimes: StopTimes?
     /// Calendar dates associated with the feed.
     public var calendarDates: CalendarDates?
-
+    
     /// The first agency found in the feed, if any.
     public var agency: Agency? {
         return agencies?.first
     }
     
-    /// Initializes a `Feed` by loading data from the specified URL.
+    /// Initializes an instance by loading GTFS data from a given URL, with optional ZIP file handling and temporary file cleanup.
     ///
-    /// If the URL points to a ZIP file, it is downloaded and extracted before loading the data.
-    /// - Parameter url: The URL to load the feed from.
-    /// - Throws: An error if the download or extraction fails, or if the feed cannot be initialized.
-    public init(contentsOfURL url: URL) throws {
+    /// - Parameters:
+    ///   - url: The URL pointing to the GTFS data source. If the URL points to a ZIP file, the file will be downloaded, extracted,
+    ///          and the contents processed accordingly. Both local and remote URLs are supported.
+    ///   - keepFiles: A Boolean flag indicating whether the temporary files and extracted contents should be retained
+    ///                after processing. Defaults to `false`, which will remove temporary files upon completion.
+    ///
+    /// - Throws: An error if there are any issues with downloading, extracting, or loading the GTFS data files.
+    ///
+    /// This initializer performs the following steps:
+    /// 1. **ZIP File Detection and Extraction**:
+    ///     - If `url` has a `.zip` extension, it is treated as a ZIP file. A unique temporary directory is created
+    ///       to hold the downloaded ZIP file and its extracted contents.
+    ///     - If `url` is a local file URL, the ZIP file is directly extracted into the temporary directory.
+    ///     - If `url` is a remote URL, the ZIP file is downloaded and then extracted into the temporary directory.
+    /// 2. **File Loading**:
+    ///     - After extraction, the initializer attempts to load GTFS-specific files (`agency.txt`, `routes.txt`, `stops.txt`,
+    ///       `trips.txt`, `stop_times.txt`, and `calendar_dates.txt`) from the extracted contents.
+    ///     - These files are used to populate the relevant GTFS data structures.
+    /// 3. **Temporary File Cleanup**:
+    ///     - If `keepFiles` is set to `false`, the initializer deletes the temporary directory, including both the downloaded
+    ///       ZIP file and the extracted contents, after processing. This behavior ensures that the file system remains clean
+    ///       by removing unnecessary files.
+    ///
+    /// ### Example Usage
+    /// ```swift
+    /// do {
+    ///     let gtfsData = try GTFSData(contentsOfURL: url, keepFiles: false)
+    ///     // Access GTFS data from gtfsData object
+    /// } catch {
+    ///     print("Failed to initialize GTFSData: \(error)")
+    /// }
+    /// ```
+    ///
+    /// This initializer provides a streamlined approach for handling GTFS data sources, supporting both local and remote
+    /// ZIP file URLs, with an efficient cleanup process to manage temporary files.
+    public init(contentsOfURL url: URL, keepFiles: Bool = false) async throws {
         let threadSafeFileManager = ThreadSafeFileManager()
         var directoryURL: URL = url
+        var extractionDirectoryURL: URL? = nil  // Pour la suppression des fichiers temporaires après utilisation
         
         if url.pathExtension == "zip" {
             print("ZIP file detected, attempting download and extraction.")
             
+            // Créer un dossier temporaire unique pour stocker le ZIP et les fichiers extraits
             let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
-            let tempFileURL = tempDirectoryURL.appendingPathComponent("export_gtfs_voyages.zip")
+            try await threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+            extractionDirectoryURL = tempDirectoryURL  // Affectation pour le nettoyage après l’utilisation
             
-            let group = DispatchGroup()
-            group.enter()
+            // Générer un nom de fichier dynamique basé sur l'URL d'origine
+            let tempFileName = url.lastPathComponent.isEmpty ? "downloadedFile.zip" : url.lastPathComponent
+            let tempFileURL = tempDirectoryURL.appendingPathComponent(tempFileName)
             
             if url.isFileURL {
                 // Extraction directe du fichier ZIP local
-                try threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
+                try await threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
                 print("Extraction successful at: \(tempDirectoryURL.path)")
                 directoryURL = tempDirectoryURL
-                group.leave()
             } else {
-                // Téléchargement du fichier ZIP distant
-                URLSession.shared.downloadTaskAsyncCompat(with: url) { result in
-                    defer { group.leave() }
-                    switch result {
-                    case .success(let (downloadedFileURL, response)):
-                        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                            do {
-                                try threadSafeFileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
-                                try threadSafeFileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
-                                print("Extraction successful at: \(tempDirectoryURL.path)")
-                            } catch {
-                                print("Error during file move or extraction: \(error)")
+                // Téléchargement du fichier ZIP distant et extraction
+                directoryURL = try await withCheckedThrowingContinuation { continuation in
+                    URLSession.shared.downloadTaskAsyncCompat(with: url) { result in
+                        switch result {
+                        case .success(let (downloadedFileURL, response)):
+                            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                                do {
+                                    try threadSafeFileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
+                                    try threadSafeFileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
+                                    print("Extraction successful at: \(tempDirectoryURL.path)")
+                                    continuation.resume(returning: tempDirectoryURL)  // Retourne l'URL extraite
+                                } catch {
+                                    print("Error during file move or extraction: \(error)")
+                                    continuation.resume(throwing: error)
+                                }
+                            } else {
+                                continuation.resume(throwing: LSError.downloadFailed)
                             }
-                        } else {
-                            print("Download failed with invalid response: \(String(describing: response))")
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
                         }
-                    case .failure(let error):
-                        print("Download error: \(error.localizedDescription)")
                     }
                 }
             }
-
-            // Attendre que le téléchargement et l'extraction soient terminés avant de continuer
-            group.wait()
-
-            // Une fois l'extraction terminée, on continue avec le chargement des fichiers GTFS
-            directoryURL = tempDirectoryURL
         }
         
         let agencyFileURL = directoryURL.appendingPathComponent("agency.txt")
@@ -170,30 +201,78 @@ public struct Feed: Identifiable {
         let stopTimesFileURL = directoryURL.appendingPathComponent("stop_times.txt")
         let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
         
-        // Charger les sections du flux
         self.agencies = try Agencies(from: agencyFileURL)
         self.routes = try Routes(from: routesFileURL)
         self.stops = try Stops(from: stopsFileURL)
         self.trips = try Trips(from: tripsFileURL)
         self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: self.agencies?.first?.timeZone ?? TimeZone(secondsFromGMT: 0)!)
         self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
+        
+        if !keepFiles {
+            defer {
+                do {
+                    if let extractionDirectoryURL = extractionDirectoryURL {
+                        try threadSafeFileManager.removeItem(at: extractionDirectoryURL)
+                        print("Temporary extraction folder removed: \(extractionDirectoryURL.path)")
+                    }
+                } catch {
+                    print("Error removing temporary extraction folder: \(error)")
+                }
+            }
+        }
+    }
+    
+    public init(agencices: Agencies? = nil, routes: Routes? = nil, stops: Stops? = nil, trips: Trips? = nil, stopTimes: StopTimes? = nil, calendarDates: CalendarDates? = nil) throws {
+        self.agencies = agencices
+        self.routes = routes
+        self.stops = stops
+        self.trips = trips
+        self.stopTimes = stopTimes
+        self.calendarDates = calendarDates
     }
 }
 
 
 extension URLSession {
-    /// Télécharge un fichier de manière asynchrone en utilisant completion handlers pour compatibilité iOS/iPadOS/macOS
+    /// Downloads a file asynchronously, leveraging advanced `URLSession` background configurations on supported platforms for enhanced performance.
     func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), LSError>) -> Void) {
-        let task = self.downloadTask(with: url) { downloadedFileURL, response, error in
-            if let error = error as NSError?, error.domain == NSURLErrorDomain {
-                completion(.failure(.downloadFailed))
-            } else if let downloadedFileURL = downloadedFileURL {
-                completion(.success((downloadedFileURL, response)))
-            } else {
-                completion(.failure(.downloadFailed))
+        if #available(iOS 15, macOS 12, tvOS 15, watchOS 8, *) {
+            Task {
+                do {
+                    let (downloadedFileURL, response) = try await self.download(from: url)
+                    completion(.success((downloadedFileURL, response)))
+                } catch {
+                    completion(.failure(.downloadFailed))
+                }
             }
+        } else if #available(iOS 13, macOS 10.15, *) {
+            // Use background configuration with completion handlers for versions prior to async/await support
+            let configuration = URLSessionConfiguration.background(withIdentifier: UUID().uuidString)
+            let session = URLSession(configuration: configuration)
+            let task = session.downloadTask(with: url) { downloadedFileURL, response, error in
+                if let error = error {
+                    print("Download error: \(error)")
+                    completion(.failure(.downloadFailed))
+                } else if let downloadedFileURL = downloadedFileURL {
+                    completion(.success((downloadedFileURL, response)))
+                } else {
+                    completion(.failure(.downloadFailed))
+                }
+            }
+            task.resume()
+        } else {
+            // Fallback for earlier versions
+            let task = self.downloadTask(with: url) { downloadedFileURL, response, error in
+                if let error = error {
+                    print("Download error: \(error)")
+                    completion(.failure(.downloadFailed))
+                } else if let downloadedFileURL = downloadedFileURL {
+                    completion(.success((downloadedFileURL, response)))
+                } else {
+                    completion(.failure(.downloadFailed))
+                }
+            }
+            task.resume()
         }
-        task.resume()
     }
 }
-

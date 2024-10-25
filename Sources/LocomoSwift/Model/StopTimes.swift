@@ -90,7 +90,7 @@ public struct StopTime: Hashable, Identifiable {
     public var timePointType: Int?
     public var nonstandard: String? = nil
     
-    private let timeZone: TimeZone
+    public let timeZone: TimeZone
     
     public init(
         tripID: LSID = "",
@@ -105,7 +105,7 @@ public struct StopTime: Hashable, Identifiable {
         continuousDropOff: Int? = nil,
         distanceTraveledForShape: Double? = nil,
         timePointType: Int? = nil,
-        timeZone: TimeZone = TimeZone(secondsFromGMT: 0)!
+        timeZone: TimeZone? = TimeZone(secondsFromGMT: 0)!
     ) {
         self.tripID = tripID
         self.arrival = arrival
@@ -119,7 +119,7 @@ public struct StopTime: Hashable, Identifiable {
         self.continuousDropOff = continuousDropOff
         self.distanceTraveledForShape = distanceTraveledForShape
         self.timePointType = timePointType
-        self.timeZone = timeZone
+        self.timeZone = timeZone!
     }
     
     init(
@@ -138,14 +138,32 @@ public struct StopTime: Hashable, Identifiable {
                 switch header {
                 case .tripID, .stopID:
                     try field.assignStringTo(&self, for: header)
-                case .stopHeadingSign:
-                    try field.assignOptionalStringTo(&self, for: header)
-                case .stopSequenceNumber:
-                    try field.assignUIntTo(&self, for: header)
                 case .arrival:
                     self.arrival = timeStringToHour(field)
                 case .departure:
                     self.departure = timeStringToHour(field)
+                case .stopHeadingSign:
+                    try field.assignOptionalStringTo(&self, for: header)
+                case .stopSequenceNumber:
+                    try field.assignUIntTo(&self, for: header)
+                case .pickupType:
+                    if let pickupTypeValue = Int(field) {
+                        self.pickupType = pickupTypeValue
+                    }
+                case .dropOffType:
+                    if let dropOffTypeValue = Int(field) {
+                        self.dropOffType = dropOffTypeValue
+                    }
+                case .continuousPickup:
+                    if let continuousPickupValue = Int(field) {
+                        self.continuousPickup = continuousPickupValue
+                    }
+                case .continuousDropOff:
+                    if let continuousDropOffValue = Int(field) {
+                        self.continuousDropOff = continuousDropOffValue
+                    }
+                case .nonstandard:
+                    try field.assignStringTo(&self, for: header)
                 default:
                     continue
                 }
@@ -156,11 +174,11 @@ public struct StopTime: Hashable, Identifiable {
     }
     
     private func timeStringToHour(_ timeString: String) -> Date? {
-           let formatter = DateFormatter()
-           formatter.dateFormat = "HH:mm:ss"
-           formatter.timeZone = timeZone 
-           return formatter.date(from: timeString)
-       }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        formatter.timeZone = timeZone
+        return formatter.date(from: timeString)
+    }
 }
 
 extension StopTime: Equatable {
@@ -183,7 +201,7 @@ extension StopTime: CustomStringConvertible {
 public struct StopTimes: Identifiable {
     public let id = UUID()
     public var headerFields = [StopTimeField]()
-    fileprivate var stopTimes = [StopTime]()
+    public var stopTimes = [StopTime]()
     
     subscript(index: Int) -> StopTime {
         get {
@@ -234,5 +252,11 @@ extension StopTimes: Sequence {
     
     public func makeIterator() -> Iterator {
         return stopTimes.makeIterator()
+    }
+}
+
+extension StopTimes {
+    public init(_ stopTimes: [StopTime]) {
+        self.stopTimes = stopTimes
     }
 }

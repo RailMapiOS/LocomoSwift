@@ -32,6 +32,19 @@ class ThreadSafeFileManager: @unchecked Sendable {
         }
     }
     
+    // Suppression de répertoires ou de fichiers
+    func removeItem(at filePath: URL) throws {
+        try queue.sync {
+            do {
+                print("Suppression de \(filePath.path)")
+                try fileManager.removeItem(at: filePath)
+            } catch {
+                print("Erreur lors de la suppression de \(filePath.path) : \(error)")
+                throw error
+            }
+        }
+    }
+    
     var temporaryDirectory: URL {
         return fileManager.temporaryDirectory
     }
