@@ -202,10 +202,16 @@ public struct Feed: Identifiable {
         let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
         
         self.agencies = try Agencies(from: agencyFileURL)
+
+        print("Agencies: \(self.agencies?.first)")
+        guard let agencyTimeZone = self.agencies?.first?.timeZone else {
+            throw LSError.missingRequiredFields
+        }
+        
         self.routes = try Routes(from: routesFileURL)
         self.stops = try Stops(from: stopsFileURL)
         self.trips = try Trips(from: tripsFileURL)
-        self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: self.agencies?.first?.timeZone ?? TimeZone(secondsFromGMT: 0)!)
+        self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: agencyTimeZone)
         self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
         
         if !keepFiles {

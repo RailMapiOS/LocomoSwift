@@ -194,22 +194,26 @@ extension Agency: CustomDebugStringConvertible {
 
 /// A representation of a complete Agency dataset.
 public struct Agencies: Identifiable, RandomAccessCollection {
-    public var startIndex: Int = 0
+    public var startIndex: Int {
+        return agencies.startIndex
+    }
     
-    public var endIndex: Int = 0
+    public var endIndex: Int {
+        return agencies.endIndex
+    }
     
     public var agencies: [Agency] = []
     
     /// A globally unique identifier.
-  public let id = UUID()
+    public let id = UUID()
     
-  /// Header fields.
+    /// Header fields.
     public var headerFields: [AgencyField] = []
-        
+    
     public var hasRequiredFields: Bool {
         return Agency.requiredFields.isSubset(of: headerFields)
     }
-
+    
     public var hasConditionallyRequiredFields: Bool {
         return Agency.conditionallyRequiredFields.isSubset(of: headerFields)
     }
@@ -220,61 +224,62 @@ public struct Agencies: Identifiable, RandomAccessCollection {
         }
         return true
     }
-
+    
     public var hasMatchingTimeZones: Bool {
         if agencies.count > 0 {
             return agencies.dropFirst().allSatisfy {
                 $0.timeZone == agencies.first?.timeZone
             }
         }
-        return true    }
+        return true
+    }
     
     public var isValid: Bool {
         return hasRequiredFields && hasRequiredAgencyIDs && hasMatchingTimeZones
     }
     
-  public subscript(index: Int) -> Agency {
-    get {
-      return agencies[index]
+    public subscript(index: Int) -> Agency {
+        get {
+            return agencies[index]
+        }
+        set(newValue) {
+            agencies[index] = newValue
+        }
     }
-    set(newValue) {
-      agencies[index] = newValue
+    
+    mutating func add(_ agency: Agency) {
+        self.agencies.append(agency)
     }
-  }
-
-  mutating func add(_ agency: Agency) {
-    self.agencies.append(agency)
-  }
-
-  mutating func remove(_ agency: Agency) {
-  }
-
-  public init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Agency {
-    for agency in sequence {
-      self.add(agency)
+    
+    mutating func remove(_ agency: Agency) {
     }
-  }
-
-  /// Initialize agencies dataset from file.
-  public init(from url: URL) throws {
-    do {
-      let records = try String(contentsOf: url).splitRecords()
-
-      if records.count <= 1 { return }
-      let headerRecord = String(records[0])
-      self.headerFields = try headerRecord.readHeader()
-
-      self.agencies.reserveCapacity(records.count - 1)
-      for agencyRecord in records[1 ..< records.count] {
+    
+    public init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Agency {
+        for agency in sequence {
+            self.add(agency)
+        }
+    }
+    
+    /// Initialize agencies dataset from file.
+    public init(from url: URL) throws {
+        do {
+            let records = try String(contentsOf: url).splitRecords()
+            if records.count <= 1 { return }
+            
+            let headerRecord = String(records[0])
+            self.headerFields = try headerRecord.readHeader()
+            
+            self.agencies.reserveCapacity(records.count - 1)
+            for agencyRecord in records[1 ..< records.count] {
                 let agency = try Agency(from: String(agencyRecord),
-                                                                using: headerFields)
-        self.add(agency)
-      }
-    } catch let error {
+                                        using: headerFields)
+                self.add(agency)
+            }
+        } catch let error {
             print(self)
-      throw error
+            throw error
+        }
     }
-  }
 }
 
 extension Agencies: ExpressibleByArrayLiteral {

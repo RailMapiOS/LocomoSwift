@@ -128,6 +128,10 @@ public struct StopTime: Hashable, Identifiable {
         timeZone: TimeZone
     ) throws {
         self.timeZone = timeZone
+        
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        
         do {
             let fields = try record.readRecord()
             if fields.count != headers.count {
@@ -176,8 +180,28 @@ public struct StopTime: Hashable, Identifiable {
     private func timeStringToHour(_ timeString: String) -> Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
-        formatter.timeZone = timeZone
-        return formatter.date(from: timeString)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = self.timeZone
+        
+        // Create base date components
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = self.timeZone
+        
+        guard let parsedDate = formatter.date(from: timeString) else { return nil }
+        
+        // Extract only time components
+        let components = calendar.dateComponents([.hour, .minute, .second], from: parsedDate)
+        
+        // Create reference date (2000-01-01) with the correct time
+        var referenceComponents = DateComponents()
+        referenceComponents.year = 2000
+        referenceComponents.month = 1
+        referenceComponents.day = 1
+        referenceComponents.hour = components.hour
+        referenceComponents.minute = components.minute
+        referenceComponents.second = components.second
+        
+        return calendar.date(from: referenceComponents)
     }
 }
 
