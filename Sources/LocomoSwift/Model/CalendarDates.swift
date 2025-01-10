@@ -142,7 +142,7 @@ extension CalendarDates: Sequence {
 }
 
 extension CalendarDates {
-    init(_ calendarDates: [CalendarDate]) {
+    public init(_ calendarDates: [CalendarDate]) {
         self.dates = calendarDates
     }
 }
