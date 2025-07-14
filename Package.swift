@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMinor(from: "0.9.19")),
-        .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMinor(from: "1.28.1"))
+        .package(url: "https://github.com/apple/swift-protobuf.git", .upToNextMinor(from: "1.30.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
