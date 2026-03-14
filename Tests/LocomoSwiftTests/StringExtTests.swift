@@ -8,6 +8,8 @@
 import XCTest
 import MapKit
 @testable import LocomoSwift
+@testable import LocomoSwiftGTFS
+@testable import LocomoSwiftRT
 
 
 class StringExtensionsTests: XCTestCase {

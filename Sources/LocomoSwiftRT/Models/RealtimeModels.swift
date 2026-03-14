@@ -113,7 +113,7 @@ public struct RealtimeServiceAlert: Identifiable, Sendable {
     public let headerText: String?
     public let descriptionText: String?
     public let activePeriods: [AlertActivePeriod]
-    public let informedEntites: [AlertInformedEntity]
+    public let informedEntities: [AlertInformedEntity]
     
     public init(
         alertID: String,
@@ -123,7 +123,7 @@ public struct RealtimeServiceAlert: Identifiable, Sendable {
         headerText: String?,
         descriptionText: String?,
         activePeriods: [AlertActivePeriod],
-        informedEntites: [AlertInformedEntity]
+        informedEntities: [AlertInformedEntity]
     ) {
         self.alertID = alertID
         self.cause = cause
@@ -132,7 +132,7 @@ public struct RealtimeServiceAlert: Identifiable, Sendable {
         self.headerText = headerText
         self.descriptionText = descriptionText
         self.activePeriods = activePeriods
-        self.informedEntites = informedEntites
+        self.informedEntities = informedEntities
     }
 }
 

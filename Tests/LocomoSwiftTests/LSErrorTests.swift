@@ -7,6 +7,8 @@
 
 import XCTest
 @testable import LocomoSwift
+@testable import LocomoSwiftGTFS
+@testable import LocomoSwiftRT
 
 class LSErrorTests: XCTestCase {
 
@@ -18,9 +20,9 @@ class LSErrorTests: XCTestCase {
         XCTAssertEqual(LSError.missingRequiredFields.localizedDescription, "One or more required fields is missing")
         XCTAssertEqual(LSError.headerRecordMismatch.localizedDescription, "The number of header and data fields are not the same")
         XCTAssertEqual(LSError.invalidColor.localizedDescription, "An invalid color was found")
-        XCTAssertEqual(LSError.invalidURL.localizedDescription, "L'URL est invalide.")
-        XCTAssertEqual(LSError.downloadFailed.localizedDescription, "Échec du téléchargement du fichier.")
-        XCTAssertEqual(LSError.fileNotFound.localizedDescription, "Fichier temporaire introuvable.")
-        XCTAssertEqual(LSError.extractionFailed.localizedDescription, "Échec de l'extraction de l'archive ZIP.")
+        XCTAssertEqual(LSError.invalidURL.localizedDescription, "The URL is invalid.")
+        XCTAssertEqual(LSError.downloadFailed.localizedDescription, "File download failed.")
+        XCTAssertEqual(LSError.fileNotFound.localizedDescription, "Temporary file not found.")
+        XCTAssertEqual(LSError.extractionFailed.localizedDescription, "ZIP archive extraction failed.")
     }
 }
