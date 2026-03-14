@@ -30,6 +30,8 @@ public enum LSError: Error {
     case downloadFailed
     case fileNotFound
     case extractionFailed
+    case invalidProtobuf
+    case realtimeFetchFailed
 }
 
 extension LSError: LocalizedError {
@@ -57,6 +59,10 @@ extension LSError: LocalizedError {
             return "Fichier temporaire introuvable."
         case .extractionFailed:
             return "Échec de l'extraction de l'archive ZIP."
+        case .invalidProtobuf:
+            return "Les données Protocol Buffer GTFS Realtime sont invalides."
+        case .realtimeFetchFailed:
+            return "Échec du téléchargement du flux GTFS Realtime."
         }
     }
 }
@@ -102,10 +108,20 @@ public struct Feed: Identifiable {
     public var stopTimes: StopTimes?
     /// Calendar dates associated with the feed.
     public var calendarDates: CalendarDates?
-    
+    /// GTFS Realtime data associated with the feed.
+    public var realtime: RealtimeFeed?
+
     /// The first agency found in the feed, if any.
     public var agency: Agency? {
         return agencies?.first
+    }
+
+    /// Loads GTFS Realtime data from a URL and associates it with this feed.
+    ///
+    /// - Parameter url: The URL of the GTFS Realtime feed (Protocol Buffer binary format).
+    /// - Throws: `LSError.realtimeFetchFailed` or `LSError.invalidProtobuf`.
+    public mutating func loadRealtime(from url: URL) async throws {
+        self.realtime = try await RealtimeFeed(contentsOf: url)
     }
     
     /// Initializes an instance by loading GTFS data from a given URL, with optional ZIP file handling and temporary file cleanup.

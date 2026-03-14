@@ -29,7 +29,8 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
-            ]),
+            ],
+            exclude: ["Protobuf/gtfs-realtime.proto"]),
         .testTarget(
             name: "LocomoSwiftTests",
             dependencies: ["LocomoSwift"],

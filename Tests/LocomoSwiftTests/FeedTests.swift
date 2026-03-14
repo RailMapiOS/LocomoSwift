@@ -11,7 +11,7 @@ import XCTest
 class FeedTests: XCTestCase {
     
     /// Test pour vérifier que l'initialisation d'un Feed à partir d'un fichier ZIP local fonctionne correctement.
-    func testFeedInitializationFromLocalZip() throws {
+    func testFeedInitializationFromLocalZip() async throws {
         // Accéder au bundle de test
         let bundle = Bundle.module
         
@@ -22,7 +22,7 @@ class FeedTests: XCTestCase {
         }
         
         // Test d'initialisation du feed à partir du fichier ZIP local
-        let feed = try Feed(contentsOfURL: zipURL)
+        let feed = try await Feed(contentsOfURL: zipURL)
         
         XCTAssertNotNil(feed.agencies)
         XCTAssertNotNil(feed.calendarDates)
