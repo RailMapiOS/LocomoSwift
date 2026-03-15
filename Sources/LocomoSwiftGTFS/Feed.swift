@@ -155,7 +155,7 @@ public struct Feed: Identifiable {
             
             // Create a unique temporary directory to store the ZIP and extracted files
             let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            try await threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+            try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
             extractionDirectoryURL = tempDirectoryURL  // Assigned for cleanup after use
             
             // Generate a dynamic filename based on the original URL
@@ -164,7 +164,7 @@ public struct Feed: Identifiable {
             
             if url.isFileURL {
                 // Direct extraction of local ZIP file
-                try await threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
+                try threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
                 print("Extraction successful at: \(tempDirectoryURL.path)")
                 directoryURL = tempDirectoryURL
             } else {
@@ -203,7 +203,7 @@ public struct Feed: Identifiable {
         
         self.agencies = try Agencies(from: agencyFileURL)
 
-        print("Agencies: \(self.agencies?.first)")
+        print("Agencies: \(String(describing: self.agencies?.first))")
         guard let agencyTimeZone = self.agencies?.first?.timeZone else {
             throw LSError.missingRequiredFields
         }
@@ -214,16 +214,12 @@ public struct Feed: Identifiable {
         self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: agencyTimeZone)
         self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
         
-        if !keepFiles {
-            defer {
-                do {
-                    if let extractionDirectoryURL = extractionDirectoryURL {
-                        try threadSafeFileManager.removeItem(at: extractionDirectoryURL)
-                        print("Temporary extraction folder removed: \(extractionDirectoryURL.path)")
-                    }
-                } catch {
-                    print("Error removing temporary extraction folder: \(error)")
-                }
+        if !keepFiles, let extractionDirectoryURL = extractionDirectoryURL {
+            do {
+                try threadSafeFileManager.removeItem(at: extractionDirectoryURL)
+                print("Temporary extraction folder removed: \(extractionDirectoryURL.path)")
+            } catch {
+                print("Error removing temporary extraction folder: \(error)")
             }
         }
     }
@@ -240,45 +236,15 @@ public struct Feed: Identifiable {
 
 
 extension URLSession {
-    /// Downloads a file asynchronously, leveraging advanced `URLSession` background configurations on supported platforms for enhanced performance.
+    /// Downloads a file asynchronously using the native async/await API.
     func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), LSError>) -> Void) {
-        if #available(iOS 15, macOS 12, tvOS 15, watchOS 8, *) {
-            Task {
-                do {
-                    let (downloadedFileURL, response) = try await self.download(from: url)
-                    completion(.success((downloadedFileURL, response)))
-                } catch {
-                    completion(.failure(.downloadFailed))
-                }
+        Task {
+            do {
+                let (downloadedFileURL, response) = try await self.download(from: url)
+                completion(.success((downloadedFileURL, response)))
+            } catch {
+                completion(.failure(.downloadFailed))
             }
-        } else if #available(iOS 13, macOS 10.15, *) {
-            // Use background configuration with completion handlers for versions prior to async/await support
-            let configuration = URLSessionConfiguration.background(withIdentifier: UUID().uuidString)
-            let session = URLSession(configuration: configuration)
-            let task = session.downloadTask(with: url) { downloadedFileURL, response, error in
-                if let error = error {
-                    print("Download error: \(error)")
-                    completion(.failure(.downloadFailed))
-                } else if let downloadedFileURL = downloadedFileURL {
-                    completion(.success((downloadedFileURL, response)))
-                } else {
-                    completion(.failure(.downloadFailed))
-                }
-            }
-            task.resume()
-        } else {
-            // Fallback for earlier versions
-            let task = self.downloadTask(with: url) { downloadedFileURL, response, error in
-                if let error = error {
-                    print("Download error: \(error)")
-                    completion(.failure(.downloadFailed))
-                } else if let downloadedFileURL = downloadedFileURL {
-                    completion(.success((downloadedFileURL, response)))
-                } else {
-                    completion(.failure(.downloadFailed))
-                }
-            }
-            task.resume()
         }
     }
 }

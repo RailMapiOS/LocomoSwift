@@ -4,18 +4,18 @@ Fetch and cache GTFS Realtime data: trip updates, vehicle positions, and service
 
 ## Overview
 
-**LocomoSwiftRT** provides a thread-safe, actor-based manager for consuming GTFS Realtime feeds. It handles protobuf deserialization, in-memory caching, and automatic cache expiration based on each data source's TTL configuration.
+**LocomoSwiftRT** provides a thread-safe, actor-based manager for consuming GTFS Realtime feeds. It handles protobuf deserialization, in-memory caching, automatic cache expiration based on each data source's TTL, and API key authentication.
 
 ```swift
 import LocomoSwiftRT
 
 let manager = RealtimeManager()
 
-// Fetch trip updates from SNCF
-let updates = try await manager.fetchTripUpdates(from: .sncf)
+// Fetch trip updates from SNCF TER
+let updates = try await manager.fetchTripUpdates(from: .sncfTER)
 
 // Fetch service alerts
-let alerts = try await manager.fetchServiceAlerts(from: .sncf)
+let alerts = try await manager.fetchServiceAlerts(from: .sncfTER)
 
 // Fetch vehicle positions (from sources that support it)
 let positions = try await manager.fetchVehiclePositions(from: .tamMontpellier)

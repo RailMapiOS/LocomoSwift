@@ -12,7 +12,7 @@ Add LocomoSwift to your `Package.swift` dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/music-forest/LocomoSwift.git", from: "1.0.0")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.0.0")
 ]
 ```
 
@@ -22,7 +22,7 @@ Then add the product to your target. You can choose between three options:
 // GTFS Static only
 .product(name: "LocomoSwiftGTFS", package: "LocomoSwift")
 
-// GTFS Realtime only
+// GTFS Realtime only (includes LocomoSwiftGTFS)
 .product(name: "LocomoSwiftRT", package: "LocomoSwift")
 
 // Everything (Static + Realtime)
@@ -36,10 +36,10 @@ The simplest way to get started is with a built-in ``DataSource`` preset:
 ```swift
 import LocomoSwiftGTFS
 
-let feed = try await Feed(from: .sncf)
+let feed = try await Feed(from: .sncfTER)
 ```
 
-This downloads the SNCF GTFS ZIP, extracts it to a temporary directory, parses all supported files, and cleans up automatically.
+This downloads the SNCF TER GTFS ZIP, extracts it to a temporary directory, parses all supported files, and cleans up automatically.
 
 ## Load a Feed from a URL
 

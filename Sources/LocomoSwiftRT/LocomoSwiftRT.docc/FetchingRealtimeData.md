@@ -28,7 +28,7 @@ let manager = RealtimeManager(urlSession: session)
 Trip updates contain delay information for individual stops along a trip:
 
 ```swift
-let updates = try await manager.fetchTripUpdates(from: .sncf)
+let updates = try await manager.fetchTripUpdates(from: .sncfTER)
 
 for update in updates {
     print("Trip \(update.tripID)")
@@ -64,7 +64,7 @@ for position in positions {
 Service alerts notify passengers about disruptions, detours, or other service changes:
 
 ```swift
-let alerts = try await manager.fetchServiceAlerts(from: .sncf)
+let alerts = try await manager.fetchServiceAlerts(from: .sncfTER)
 
 for alert in alerts {
     print("Alert: \(alert.headerText ?? "No title")")
@@ -82,12 +82,26 @@ for alert in alerts {
 }
 ```
 
+## Using Sources with API Keys
+
+Some providers require authentication. Use ``DataSource/withAuthentication(_:)`` to inject your API key:
+
+```swift
+let mySBB = DataSource.sbb.withAuthentication(
+    .queryParam(name: "api_key", value: "YOUR_KEY")
+)
+let updates = try await manager.fetchTripUpdates(from: mySBB)
+```
+
+Authentication is applied automatically to all network requests — both query parameters and HTTP headers are handled transparently.
+
 ## Caching Behavior
 
 ``RealtimeManager`` automatically caches feed responses in memory. The cache TTL is controlled by each ``DataSource/realtimeCacheTTL``:
 
-- **SNCF**: 120 seconds (2 minutes)
+- **SNCF (TER, TGV, Intercités)**: 120 seconds (2 minutes)
 - **TaM Montpellier**: 60 seconds (1 minute)
+- **SBB**: 30 seconds
 - **Custom sources**: configurable via the `realtimeCacheTTL` parameter
 
 Subsequent calls within the TTL window return cached data instantly without a network request.
@@ -96,7 +110,7 @@ To force a fresh fetch, clear the cache first:
 
 ```swift
 await manager.clearCache()
-let freshUpdates = try await manager.fetchTripUpdates(from: .sncf)
+let freshUpdates = try await manager.fetchTripUpdates(from: .sncfTER)
 ```
 
 ## Applying Updates to a Feed
@@ -106,16 +120,14 @@ You can combine static and realtime data by applying updates to a ``Feed``:
 ```swift
 import LocomoSwift
 
-var feed = try await Feed(from: .sncf)
+var feed = try await Feed(from: .sncfTER)
 let manager = feed.createRealtimeManager()
 
-let updates = try await manager.fetchTripUpdates(from: .sncf)
-let positions = try await manager.fetchVehiclePositions(from: .sncf)
-let alerts = try await manager.fetchServiceAlerts(from: .sncf)
+let updates = try await manager.fetchTripUpdates(from: .sncfTER)
+let alerts = try await manager.fetchServiceAlerts(from: .sncfTER)
 
 feed.applyRealtimeUpdates(
     tripUpdates: updates,
-    vehiclePositions: positions,
     serviceAlerts: alerts
 )
 ```
