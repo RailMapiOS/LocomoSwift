@@ -129,7 +129,7 @@ extension String {
     where FieldType.RawValue == String {
         let components = try self.readRecord()
         return components.map {
-            if let headerField = FieldType(rawValue: $0) {
+            if let headerField = FieldType(rawValue: $0.trimmingCharacters(in: .whitespaces)) {
                 return headerField
             } else {
                 return FieldType(rawValue: "nonstandard")!

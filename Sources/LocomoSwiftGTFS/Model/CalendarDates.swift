@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: CalendarDatesField
 
-/// Enum pour les champs du fichier `calendar_dates.txt`
+/// Enum for `calendar_dates.txt` file fields.
 public enum CalendarDatesField: String, Hashable, KeyPathVending, Sendable {
     case serviceID = "service_id"
     case date = "date"
@@ -29,9 +29,9 @@ public enum CalendarDatesField: String, Hashable, KeyPathVending, Sendable {
 
 // MARK: - CalendarDate
 
-/// Représente une exception de service pour une date donnée
+/// Represents a service exception for a given date.
 public struct CalendarDate: Hashable, Identifiable, Sendable {
-    public var id = UUID()  // Propriété initialisée
+    public var id = UUID()
     public var serviceID: LSID
     public var date: Date
     public var exceptionType: Int
@@ -43,10 +43,10 @@ public struct CalendarDate: Hashable, Identifiable, Sendable {
         self.exceptionType = exceptionType
     }
     
-    /// Initialisation à partir d'un enregistrement du fichier GTFS
+    /// Initializes from a GTFS file record.
     public init(from record: String, using headerFields: [CalendarDatesField]) throws {
-        // Initialisation des propriétés avec des valeurs par défaut
-        self.id = UUID()  // Assurez-vous que l'id est initialisé
+        // Initialize properties with default values
+        self.id = UUID()
         self.serviceID = ""
         self.date = Date()
         self.exceptionType = 0
@@ -75,7 +75,7 @@ public struct CalendarDate: Hashable, Identifiable, Sendable {
         }
     }
     
-    /// Formatteur de date pour les champs `date`
+    /// Date formatter for `date` fields.
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd"
@@ -85,7 +85,7 @@ public struct CalendarDate: Hashable, Identifiable, Sendable {
 
 // MARK: - CalendarDates
 
-/// Un ensemble d'exceptions de service pour différentes dates
+/// A collection of service exceptions for different dates.
 public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
     public var id = UUID()
     public var startIndex: Int { return dates.startIndex }
@@ -115,7 +115,7 @@ public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
       }
     }
     
-    /// Initialisation à partir d'un fichier GTFS
+    /// Initializes from a GTFS file.
     public init(from url: URL) throws {
         let records = try String(contentsOf: url).splitRecords()
         
