@@ -151,7 +151,7 @@ Authentication is applied automatically to all requests (static downloads and re
 | Calendar | `calendar.txt` | ❌ |
 | Fare Attributes | `fare_attributes.txt` | ❌ |
 | Fare Rules | `fare_rules.txt` | ❌ |
-| Shapes | `shapes.txt` | ❌ |
+| Shapes | `shapes.txt` | ✅ |
 | Frequencies | `frequencies.txt` | ❌ |
 | Transfers | `transfers.txt` | ❌ |
 | Feed Info | `feed_info.txt` | ❌ |

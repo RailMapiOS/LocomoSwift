@@ -260,25 +260,25 @@ public struct Agencies: Identifiable, RandomAccessCollection {
         }
     }
     
+    /// Initialize agencies dataset from a CSV string.
+    public init(from content: String) throws {
+        let records = content.splitRecords()
+        if records.count <= 1 { return }
+
+        let headerRecord = String(records[0])
+        self.headerFields = try headerRecord.readHeader()
+
+        self.agencies.reserveCapacity(records.count - 1)
+        for agencyRecord in records[1 ..< records.count] {
+            let agency = try Agency(from: String(agencyRecord),
+                                    using: headerFields)
+            self.add(agency)
+        }
+    }
+
     /// Initialize agencies dataset from file.
     public init(from url: URL) throws {
-        do {
-            let records = try String(contentsOf: url).splitRecords()
-            if records.count <= 1 { return }
-            
-            let headerRecord = String(records[0])
-            self.headerFields = try headerRecord.readHeader()
-            
-            self.agencies.reserveCapacity(records.count - 1)
-            for agencyRecord in records[1 ..< records.count] {
-                let agency = try Agency(from: String(agencyRecord),
-                                        using: headerFields)
-                self.add(agency)
-            }
-        } catch let error {
-            print(self)
-            throw error
-        }
+        try self.init(from: String(contentsOf: url))
     }
 }
 

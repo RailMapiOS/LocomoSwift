@@ -263,22 +263,24 @@ public struct Stops: Identifiable {
     }
   }
 
-  init(from url: URL) throws {
-    do {
-      let records = try String(contentsOf: url).splitRecords()
+  /// Initialize stops dataset from a CSV string.
+  public init(from content: String) throws {
+    let records = content.splitRecords()
 
-      if records.count <= 1 { return }
-      let headerRecord = String(records[0])
-      self.headerFields = try headerRecord.readHeader()
+    if records.count <= 1 { return }
+    let headerRecord = String(records[0])
+    self.headerFields = try headerRecord.readHeader()
 
-      self.stops.reserveCapacity(records.count - 1)
-      for stopRecord in records[1 ..< records.count] {
-        let stop = try Stop(from: String(stopRecord), using: headerFields)
-        self.add(stop)
-      }
-    } catch let error {
-      throw error
+    self.stops.reserveCapacity(records.count - 1)
+    for stopRecord in records[1 ..< records.count] {
+      let stop = try Stop(from: String(stopRecord), using: headerFields)
+      self.add(stop)
     }
+  }
+
+  /// Initialize stops dataset from file.
+  init(from url: URL) throws {
+    try self.init(from: String(contentsOf: url))
   }
 }
 
