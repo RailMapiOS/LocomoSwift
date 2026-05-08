@@ -1,0 +1,3 @@
+route_id,service_id,trip_id,trip_headsign
+R1,SVC,T1,Charlie via Alpha
+R1,SVC,T2,Delta via Bravo

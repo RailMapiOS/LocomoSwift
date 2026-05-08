@@ -50,9 +50,11 @@ let package = Package(
         // MARK: - Tests
         .testTarget(
             name: "LocomoSwiftTests",
-            dependencies: ["LocomoSwift"],
+            dependencies: ["LocomoSwift", "LocomoSwiftGTFS", "LocomoSwiftRT"],
             resources: [
-                .copy("Resources/export_gtfs_voyages.zip")
+                .copy("Resources/export_gtfs_voyages.zip"),
+                .copy("Resources/MiniGTFS"),
+                .copy("Resources/MiniGTFS.zip")
             ]
         ),
     ]
