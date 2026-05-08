@@ -251,23 +251,25 @@ public struct StopTimes: Identifiable {
         }
     }
     
-    init(from url: URL, timeZone: TimeZone) throws {
-        do {
-            let records = try String(contentsOf: url).splitRecords()
-            
-            if records.count < 1 { return }
-            let headerRecord = String(records[0])
-            self.headerFields = try headerRecord.readHeader()
-            
-            self.stopTimes.reserveCapacity(records.count - 1)
-            for stopTimeRecord in records[1 ..< records.count] {
-                let stopTime = try StopTime(from: String(stopTimeRecord),
-                                            using: headerFields, timeZone: timeZone)
-                self.add(stopTime)
-            }
-        } catch let error {
-            throw error
+    /// Initialize stop times dataset from a CSV string.
+    public init(from content: String, timeZone: TimeZone) throws {
+        let records = content.splitRecords()
+
+        if records.count < 1 { return }
+        let headerRecord = String(records[0])
+        self.headerFields = try headerRecord.readHeader()
+
+        self.stopTimes.reserveCapacity(records.count - 1)
+        for stopTimeRecord in records[1 ..< records.count] {
+            let stopTime = try StopTime(from: String(stopTimeRecord),
+                                        using: headerFields, timeZone: timeZone)
+            self.add(stopTime)
         }
+    }
+
+    /// Initialize stop times dataset from file.
+    init(from url: URL, timeZone: TimeZone) throws {
+        try self.init(from: String(contentsOf: url), timeZone: timeZone)
     }
 }
 

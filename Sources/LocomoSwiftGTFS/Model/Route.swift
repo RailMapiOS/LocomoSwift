@@ -74,7 +74,7 @@ public enum RouteField: String, Hashable, KeyPathVending, Sendable {
 
 // MARK: - RouteField
 
-public enum RouteType: UInt, Hashable {
+public enum RouteType: UInt, Hashable, CustomStringConvertible {
   case tram = 0
   case subway = 1
   case rail = 2
@@ -85,6 +85,21 @@ public enum RouteType: UInt, Hashable {
   case funicular = 7
   case trolleybus = 11
   case monorail = 12
+
+  public var description: String {
+    switch self {
+    case .tram: return "Tram"
+    case .subway: return "Subway"
+    case .rail: return "Rail"
+    case .bus: return "Bus"
+    case .ferry: return "Ferry"
+    case .cable: return "Cable Car"
+    case .aerial: return "Aerial Lift"
+    case .funicular: return "Funicular"
+    case .trolleybus: return "Trolleybus"
+    case .monorail: return "Monorail"
+    }
+  }
 }
 
 public enum PickupDropOffPolicy: UInt, Hashable {
@@ -270,23 +285,24 @@ public struct Routes: Identifiable {
     }
   }
 
-  init(from url: URL) throws {
-    do {
-      let records = try String(contentsOf: url).splitRecords()
+  /// Initialize routes dataset from a CSV string.
+  public init(from content: String) throws {
+    let records = content.splitRecords()
 
-      if records.count <= 1 { return }
-      let headerRecord = String(records[0])
-      self.headerFields = try headerRecord.readHeader()
+    if records.count <= 1 { return }
+    let headerRecord = String(records[0])
+    self.headerFields = try headerRecord.readHeader()
 
-      self.routes.reserveCapacity(records.count - 1)
-      for routeRecord in records[1 ..< records.count] {
-        let route = try Route(from: String(routeRecord), using: headerFields)
-                //print(route)
-        self.add(route)
-      }
-    } catch let error {
-      throw error
+    self.routes.reserveCapacity(records.count - 1)
+    for routeRecord in records[1 ..< records.count] {
+      let route = try Route(from: String(routeRecord), using: headerFields)
+      self.add(route)
     }
+  }
+
+  /// Initialize routes dataset from file.
+  init(from url: URL) throws {
+    try self.init(from: String(contentsOf: url))
   }
 }
 

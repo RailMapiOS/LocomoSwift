@@ -102,12 +102,14 @@ public struct Feed: Identifiable {
     public var stopTimes: StopTimes?
     /// Calendar dates associated with the feed.
     public var calendarDates: CalendarDates?
-    
+    /// Shapes associated with the feed (optional in GTFS).
+    public var shapes: Shapes?
+
     /// The first agency found in the feed, if any.
     public var agency: Agency? {
         return agencies?.first
     }
-    
+
     /// Initializes an instance by loading GTFS data from a given URL, with optional ZIP file handling and temporary file cleanup.
     ///
     /// - Parameters:
@@ -120,131 +122,194 @@ public struct Feed: Identifiable {
     ///
     /// This initializer performs the following steps:
     /// 1. **ZIP File Detection and Extraction**:
-    ///     - If `url` has a `.zip` extension, it is treated as a ZIP file. A unique temporary directory is created
-    ///       to hold the downloaded ZIP file and its extracted contents.
-    ///     - If `url` is a local file URL, the ZIP file is directly extracted into the temporary directory.
-    ///     - If `url` is a remote URL, the ZIP file is downloaded and then extracted into the temporary directory.
-    /// 2. **File Loading**:
-    ///     - After extraction, the initializer attempts to load GTFS-specific files (`agency.txt`, `routes.txt`, `stops.txt`,
-    ///       `trips.txt`, `stop_times.txt`, and `calendar_dates.txt`) from the extracted contents.
-    ///     - These files are used to populate the relevant GTFS data structures.
+    ///     - If `url` has a `.zip` extension, it is treated as a ZIP file.
+    ///     - ZIP entries are extracted selectively (only GTFS files needed) to minimize I/O.
+    /// 2. **Concurrent Parsing**:
+    ///     - `agency.txt` is parsed first (required for timezone).
+    ///     - All other files are parsed concurrently using `async let`.
     /// 3. **Temporary File Cleanup**:
-    ///     - If `keepFiles` is set to `false`, the initializer deletes the temporary directory, including both the downloaded
-    ///       ZIP file and the extracted contents, after processing. This behavior ensures that the file system remains clean
-    ///       by removing unnecessary files.
+    ///     - If `keepFiles` is set to `false`, the initializer deletes temporary files after processing.
     ///
     /// ### Example Usage
     /// ```swift
     /// do {
-    ///     let gtfsData = try GTFSData(contentsOfURL: url, keepFiles: false)
+    ///     let gtfsData = try await Feed(contentsOfURL: url, keepFiles: false)
     ///     // Access GTFS data from gtfsData object
     /// } catch {
-    ///     print("Failed to initialize GTFSData: \(error)")
+    ///     print("Failed to initialize Feed: \(error)")
     /// }
     /// ```
-    ///
-    /// This initializer provides a streamlined approach for handling GTFS data sources, supporting both local and remote
-    /// ZIP file URLs, with an efficient cleanup process to manage temporary files.
     public init(contentsOfURL url: URL, keepFiles: Bool = false) async throws {
-        let threadSafeFileManager = ThreadSafeFileManager()
-        var directoryURL: URL = url
-        var extractionDirectoryURL: URL? = nil  // Used for cleanup of temporary files after use
-        
         if url.pathExtension == "zip" {
-            print("ZIP file detected, attempting download and extraction.")
-            
-            // Create a unique temporary directory to store the ZIP and extracted files
-            let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
-            extractionDirectoryURL = tempDirectoryURL  // Assigned for cleanup after use
-            
-            // Generate a dynamic filename based on the original URL
-            let tempFileName = url.lastPathComponent.isEmpty ? "downloadedFile.zip" : url.lastPathComponent
-            let tempFileURL = tempDirectoryURL.appendingPathComponent(tempFileName)
-            
-            if url.isFileURL {
-                // Direct extraction of local ZIP file
-                try threadSafeFileManager.unzipItem(at: url, to: tempDirectoryURL)
-                print("Extraction successful at: \(tempDirectoryURL.path)")
-                directoryURL = tempDirectoryURL
-            } else {
-                // Download remote ZIP file and extract
-                directoryURL = try await withCheckedThrowingContinuation { continuation in
-                    URLSession.shared.downloadTaskAsyncCompat(with: url) { result in
-                        switch result {
-                        case .success(let (downloadedFileURL, response)):
-                            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                                do {
-                                    try threadSafeFileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
-                                    try threadSafeFileManager.unzipItem(at: tempFileURL, to: tempDirectoryURL)
-                                    print("Extraction successful at: \(tempDirectoryURL.path)")
-                                    continuation.resume(returning: tempDirectoryURL)  // Return extracted URL
-                                } catch {
-                                    print("Error during file move or extraction: \(error)")
-                                    continuation.resume(throwing: error)
-                                }
-                            } else {
-                                continuation.resume(throwing: LSError.downloadFailed)
-                            }
-                        case .failure(let error):
-                            continuation.resume(throwing: error)
-                        }
-                    }
-                }
-            }
+            try await self.init(contentsOfZIP: url, keepFiles: keepFiles)
+        } else {
+            // Local directory — parse files directly
+            try self.init(contentsOfDirectory: url)
         }
-        
+    }
+
+    /// Initialize from a local directory containing extracted GTFS text files.
+    private init(contentsOfDirectory directoryURL: URL) throws {
         let agencyFileURL = directoryURL.appendingPathComponent("agency.txt")
         let routesFileURL = directoryURL.appendingPathComponent("routes.txt")
         let stopsFileURL = directoryURL.appendingPathComponent("stops.txt")
         let tripsFileURL = directoryURL.appendingPathComponent("trips.txt")
         let stopTimesFileURL = directoryURL.appendingPathComponent("stop_times.txt")
         let calendarDatesFileURL = directoryURL.appendingPathComponent("calendar_dates.txt")
-        
-        self.agencies = try Agencies(from: agencyFileURL)
+        let shapesFileURL = directoryURL.appendingPathComponent("shapes.txt")
 
-        print("Agencies: \(String(describing: self.agencies?.first))")
+        // Phase A: Parse agencies first (needed for timezone)
+        self.agencies = try Agencies(from: agencyFileURL)
         guard let agencyTimeZone = self.agencies?.first?.timeZone else {
             throw LSError.missingRequiredFields
         }
-        
+
+        // Phase B: Parse remaining files (sequential for directory, concurrent for ZIP)
         self.routes = try Routes(from: routesFileURL)
         self.stops = try Stops(from: stopsFileURL)
         self.trips = try Trips(from: tripsFileURL)
         self.stopTimes = try StopTimes(from: stopTimesFileURL, timeZone: agencyTimeZone)
         self.calendarDates = try CalendarDates(from: calendarDatesFileURL)
-        
-        if !keepFiles, let extractionDirectoryURL = extractionDirectoryURL {
-            do {
-                try threadSafeFileManager.removeItem(at: extractionDirectoryURL)
-                print("Temporary extraction folder removed: \(extractionDirectoryURL.path)")
-            } catch {
-                print("Error removing temporary extraction folder: \(error)")
-            }
+
+        // shapes.txt is optional in GTFS
+        if FileManager.default.fileExists(atPath: shapesFileURL.path) {
+            self.shapes = try Shapes(from: shapesFileURL)
         }
     }
-    
-    public init(agencices: Agencies? = nil, routes: Routes? = nil, stops: Stops? = nil, trips: Trips? = nil, stopTimes: StopTimes? = nil, calendarDates: CalendarDates? = nil) throws {
+
+    /// Initialize from a ZIP archive URL (local or remote) with selective extraction
+    /// and concurrent CSV parsing.
+    private init(contentsOfZIP url: URL, keepFiles: Bool) async throws {
+        let threadSafeFileManager = ThreadSafeFileManager()
+        let tempDirectoryURL = threadSafeFileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try threadSafeFileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
+
+        defer {
+            if !keepFiles {
+                do {
+                    try threadSafeFileManager.removeItem(at: tempDirectoryURL)
+                    print("Temporary extraction folder removed: \(tempDirectoryURL.path)")
+                } catch {
+                    print("Error removing temporary extraction folder: \(error)")
+                }
+            }
+        }
+
+        let archiveURL: URL
+
+        if url.isFileURL {
+            archiveURL = url
+        } else {
+            // Download remote ZIP
+            let tempFileName = url.lastPathComponent.isEmpty ? "downloadedFile.zip" : url.lastPathComponent
+            let tempFileURL = tempDirectoryURL.appendingPathComponent(tempFileName)
+
+            let (downloadedFileURL, response) = try await URLSession.shared.download(from: url)
+
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                throw LSError.downloadFailed
+            }
+
+            try threadSafeFileManager.moveItem(at: downloadedFileURL, to: tempFileURL)
+            archiveURL = tempFileURL
+            print("ZIP downloaded to: \(tempFileURL.path)")
+        }
+
+        // Selective extraction: read only the GTFS files we need
+        guard let archive = Archive(url: archiveURL, accessMode: .read) else {
+            throw LSError.extractionFailed
+        }
+
+        let gtfsFileNames = ["agency.txt", "routes.txt", "stops.txt", "trips.txt", "stop_times.txt", "calendar_dates.txt", "shapes.txt"]
+        var fileContents: [String: String] = [:]
+
+        for fileName in gtfsFileNames {
+            // Look for the entry at root or inside a subdirectory
+            if let entry = archive[fileName] ?? Self.findEntry(named: fileName, in: archive) {
+                var data = Data()
+                _ = try archive.extract(entry) { chunk in
+                    data.append(chunk)
+                }
+                fileContents[fileName] = String(data: data, encoding: .utf8)
+            }
+        }
+
+        print("Extracted \(fileContents.count) GTFS files from ZIP")
+
+        // Phase A: Parse agencies first (needed for timezone)
+        guard let agencyContent = fileContents["agency.txt"] else {
+            throw LSError.fileNotFound
+        }
+        self.agencies = try Agencies(from: agencyContent)
+
+        guard let agencyTimeZone = self.agencies?.first?.timeZone else {
+            throw LSError.missingRequiredFields
+        }
+
+        // Phase B: Parse remaining files concurrently
+        let routesContent = fileContents["routes.txt"]
+        let stopsContent = fileContents["stops.txt"]
+        let tripsContent = fileContents["trips.txt"]
+        let stopTimesContent = fileContents["stop_times.txt"]
+        let calendarDatesContent = fileContents["calendar_dates.txt"]
+        let shapesContent = fileContents["shapes.txt"]
+        let tz = agencyTimeZone
+
+        async let routesParsing: Routes? = {
+            guard let content = routesContent else { return nil }
+            return try Routes(from: content)
+        }()
+
+        async let stopsParsing: Stops? = {
+            guard let content = stopsContent else { return nil }
+            return try Stops(from: content)
+        }()
+
+        async let tripsParsing: Trips? = {
+            guard let content = tripsContent else { return nil }
+            return try Trips(from: content)
+        }()
+
+        async let stopTimesParsing: StopTimes? = {
+            guard let content = stopTimesContent else { return nil }
+            return try StopTimes(from: content, timeZone: tz)
+        }()
+
+        async let calendarDatesParsing: CalendarDates? = {
+            guard let content = calendarDatesContent else { return nil }
+            return try CalendarDates(from: content)
+        }()
+
+        async let shapesParsing: Shapes? = {
+            guard let content = shapesContent else { return nil }
+            return try Shapes(from: content)
+        }()
+
+        self.routes = try await routesParsing
+        self.stops = try await stopsParsing
+        self.trips = try await tripsParsing
+        self.stopTimes = try await stopTimesParsing
+        self.calendarDates = try await calendarDatesParsing
+        self.shapes = try await shapesParsing
+    }
+
+    /// Find a ZIP entry by filename, searching inside subdirectories.
+    private static func findEntry(named fileName: String, in archive: Archive) -> Entry? {
+        for entry in archive {
+            if entry.path.hasSuffix("/\(fileName)") || entry.path == fileName {
+                return entry
+            }
+        }
+        return nil
+    }
+
+    public init(agencices: Agencies? = nil, routes: Routes? = nil, stops: Stops? = nil, trips: Trips? = nil, stopTimes: StopTimes? = nil, calendarDates: CalendarDates? = nil, shapes: Shapes? = nil) throws {
         self.agencies = agencices
         self.routes = routes
         self.stops = stops
         self.trips = trips
         self.stopTimes = stopTimes
         self.calendarDates = calendarDates
-    }
-}
-
-
-extension URLSession {
-    /// Downloads a file asynchronously using the native async/await API.
-    func downloadTaskAsyncCompat(with url: URL, completion: @Sendable @escaping (Result<(URL, URLResponse?), LSError>) -> Void) {
-        Task {
-            do {
-                let (downloadedFileURL, response) = try await self.download(from: url)
-                completion(.success((downloadedFileURL, response)))
-            } catch {
-                completion(.failure(.downloadFailed))
-            }
-        }
+        self.shapes = shapes
     }
 }

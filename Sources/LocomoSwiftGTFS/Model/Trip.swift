@@ -179,22 +179,24 @@ public struct Trips: Identifiable {
         }
     }
     
-    init(from url: URL) throws {
-        do {
-            let records = try String(contentsOf: url).splitRecords()
-            
-            if records.count < 1 { return }
-            let headerRecord = String(records[0])
-            self.headerFields = try headerRecord.readHeader()
-            
-            self.trips.reserveCapacity(records.count - 1)
-            for tripRecord in records[1 ..< records.count] {
-                let trip = try Trip(from: String(tripRecord), using: headerFields)
-                self.add(trip)
-            }
-        } catch let error {
-            throw error
+    /// Initialize trips dataset from a CSV string.
+    public init(from content: String) throws {
+        let records = content.splitRecords()
+
+        if records.count < 1 { return }
+        let headerRecord = String(records[0])
+        self.headerFields = try headerRecord.readHeader()
+
+        self.trips.reserveCapacity(records.count - 1)
+        for tripRecord in records[1 ..< records.count] {
+            let trip = try Trip(from: String(tripRecord), using: headerFields)
+            self.add(trip)
         }
+    }
+
+    /// Initialize trips dataset from file.
+    init(from url: URL) throws {
+        try self.init(from: String(contentsOf: url))
     }
 }
 

@@ -115,19 +115,24 @@ public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
       }
     }
     
-    /// Initializes from a GTFS file.
-    public init(from url: URL) throws {
-        let records = try String(contentsOf: url).splitRecords()
-        
+    /// Initializes from a CSV string.
+    public init(from content: String) throws {
+        let records = content.splitRecords()
+
         if records.count <= 1 { return }
         let headerRecord = String(records[0])
         self.headerFields = try headerRecord.readHeader()
-        
+
         self.dates.reserveCapacity(records.count - 1)
         for dateRecord in records.dropFirst() {
             let calendarDate = try CalendarDate(from: String(dateRecord), using: headerFields)
             self.add(calendarDate)
         }
+    }
+
+    /// Initializes from a GTFS file.
+    public init(from url: URL) throws {
+        try self.init(from: String(contentsOf: url))
     }
 }
 
