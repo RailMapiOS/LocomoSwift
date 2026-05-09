@@ -12,12 +12,15 @@ A Swift package for parsing **GTFS Static** feeds and consuming **GTFS Realtime*
 ## Features
 
 - **GTFS Static** — Parse ZIP or folder-based feeds: agencies, routes, stops, trips, stop times, calendar dates, shapes
-- **GTFS Realtime** — Fetch trip updates, vehicle positions, and service alerts from protobuf feeds
+- **GTFS Realtime — full v2.0 schema** — Trip updates with stop time properties, vehicle positions with congestion / occupancy / multi-carriage details, service alerts with severity and translated text/images, and realtime shapes
 - **DataSource presets** — Pre-configured sources for SNCF, SBB, TaM Montpellier, and more
 - **Custom DataSources** — Inject your own endpoints for any transit provider
 - **API key support** — Built-in authentication via query parameters or HTTP headers
 - **Actor-based concurrency** — Thread-safe realtime cache via Swift's `actor` model
-- **Filesystem-free parsing** — Every collection accepts a CSV string directly, no disk I/O required
+- **Pluggable decoder** — `FeedMessageDecoding` lets you swap the protobuf pipeline for fixtures, compression, or alternative wire formats
+- **i18n-ready** — `TranslatedString.text(for: Locale)` follows the GTFS-RT resolution rules (exact match → primary language → untagged fallback)
+- **Forward-compatible enums** — `AlertCause`, `AlertEffect`, `OccupancyStatus`, `CongestionLevel`, etc. preserve unknown raw values via `.unrecognized(rawValue:)` instead of dropping them
+- **Filesystem-free parsing** — Every static collection accepts a CSV string directly, no disk I/O required
 - **Concurrent ZIP parsing** — GTFS files inside an archive are decoded in parallel via `async let`
 - **Modular imports** — Import only what you need: static, realtime, or both
 
@@ -29,7 +32,7 @@ In your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.1.1")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.2.0")
 ]
 ```
 
@@ -92,17 +95,43 @@ import LocomoSwiftRT
 
 let manager = RealtimeManager()
 
-// Fetch trip updates
+// Trip updates — every field of the GTFS-RT schema is exposed
 let updates = try await manager.fetchTripUpdates(from: .sncfTER)
 for update in updates {
-    print("\(update.tripID): delay \(update.stopTimeUpdates.first?.arrivalDelay ?? 0)s")
+    let id = update.trip.tripID ?? "?"
+    let firstDelay = update.stopTimeUpdates.first?.arrivalDelay ?? 0
+    print("\(id): delay \(firstDelay)s")
 }
 
-// Fetch vehicle positions
+// Vehicle positions, including per-carriage occupancy when the producer ships it
 let positions = try await manager.fetchVehiclePositions(from: .tamMontpellier)
+for position in positions {
+    print("\(position.vehicle.id ?? "?") @ \(position.latitude ?? 0), \(position.longitude ?? 0)")
+    for car in position.multiCarriageDetails {
+        print("  Car \(car.carriageSequence): \(car.occupancyStatus ?? .noDataAvailable)")
+    }
+}
 
-// Fetch service alerts
+// Service alerts — text fields are TranslatedString
 let alerts = try await manager.fetchServiceAlerts(from: .sncfTER)
+for alert in alerts where alert.isActive() {
+    let title = alert.headerText?.text(for: .current) ?? ""
+    print("[\(alert.severityLevel ?? .unknown)] \(title)")
+}
+```
+
+### Fetch a Whole Feed in One Call
+
+```swift
+let feed = try await manager.fetchFeed(from: .sncfTER, feedType: .tripUpdates)
+
+print("GTFS-RT \(feed.header.gtfsRealtimeVersion)")
+print("\(feed.tripUpdates.count) trip updates")
+print("\(feed.serviceAlerts.count) alerts")
+print("\(feed.shapes.count) realtime shapes")
+if feed.header.incrementality == .differential {
+    print("Deleted entities: \(feed.deletedEntityIDs)")
+}
 ```
 
 ### Create a Custom DataSource
@@ -179,11 +208,49 @@ Authentication is applied automatically to all requests (static downloads and re
 
 ## GTFS Realtime Support
 
-| Feed Type | Supported |
-|-----------|:---------:|
-| Trip Updates | ✅ |
-| Vehicle Positions | ✅ |
-| Service Alerts | ✅ |
+The full GTFS-RT v2.0 schema is exposed as Swift types.
+
+### Top-level entities
+
+| Entity | Field | Supported |
+|--------|-------|:---------:|
+| Feed | header (version, incrementality, timestamp, feed_version) | ✅ |
+| Feed | tripUpdate, vehicle, alert, shape | ✅ |
+| Feed | stop, tripModifications (experimental in spec) | ❌ |
+| Feed | isDeleted markers (DIFFERENTIAL) | ✅ |
+
+### Trip updates
+
+| Field | Supported |
+|-------|:---------:|
+| TripDescriptor (trip_id, route_id, direction_id, start_date, start_time, schedule_relationship, modified_trip) | ✅ |
+| VehicleDescriptor (id, label, license_plate, wheelchair_accessible) | ✅ |
+| StopTimeUpdate (stop_id, stop_sequence, arrival, departure, departure_occupancy_status, schedule_relationship, stop_time_properties) | ✅ |
+| StopTimeEvent (delay, time, uncertainty, scheduled_time) | ✅ |
+| StopTimeProperties (assigned_stop_id, stop_headsign, pickup_type, drop_off_type) | ✅ |
+| TripProperties (trip_id, start_date, start_time, shape_id, trip_headsign, trip_short_name) | ✅ |
+| trip-level delay, timestamp | ✅ |
+
+### Vehicle positions
+
+| Field | Supported |
+|-------|:---------:|
+| Position (latitude, longitude, bearing, odometer, speed) | ✅ |
+| current_stop_sequence, stop_id, current_status | ✅ |
+| congestion_level, occupancy_status, occupancy_percentage | ✅ |
+| multi_carriage_details (per-carriage label, occupancy, sequence) | ✅ |
+
+### Service alerts
+
+| Field | Supported |
+|-------|:---------:|
+| cause, effect, severity_level | ✅ |
+| header_text, description_text, url (TranslatedString) | ✅ |
+| tts_header_text, tts_description_text | ✅ |
+| cause_detail, effect_detail (TranslatedString) | ✅ |
+| image (TranslatedImage), image_alternative_text | ✅ |
+| active_period (TimeRange) | ✅ |
+| informed_entity (route, route_type, trip, stop, agency, direction) | ✅ |
 
 ## DataSource Presets
 
