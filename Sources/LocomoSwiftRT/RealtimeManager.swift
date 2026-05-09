@@ -2,78 +2,83 @@
 //  RealtimeManager.swift
 //  LocomoSwift
 //
-//  Created by Jérémie Patot on 14/07/2025.
+//  GTFS Realtime feed manager with built-in caching.
+//
+//  Caching is keyed by `(DataSource.identifier, RealtimeFeedType)` and
+//  invalidated based on each source's `realtimeCacheTTL`. Decoding is
+//  delegated to a `FeedMessageDecoding` so consumers can plug in custom
+//  pipelines (alternative formats, compression, fixtures…).
 //
 
 import Foundation
 import LocomoSwiftGTFS
-import SwiftProtobuf
 
-/// GTFS Realtime feed manager with built-in caching.
-///
-/// Uses an actor to guarantee thread-safe cache access.
-/// Cache TTL is driven by each ``DataSource/realtimeCacheTTL``.
 public actor RealtimeManager: RealtimeDataSource {
 
     private let urlSession: URLSession
-    private var cache: [String: CachedFeedData] = [:]
+    private let decoder: FeedMessageDecoding
+    private var cache: [CacheKey: CachedEntry] = [:]
 
-    public init(urlSession: URLSession = .shared) {
+    public init(
+        urlSession: URLSession = .shared,
+        decoder: FeedMessageDecoding = ProtobufFeedMessageDecoder()
+    ) {
         self.urlSession = urlSession
+        self.decoder = decoder
     }
 
-    // MARK: - RealtimeDataSource
+    // MARK: - Per-feed convenience
 
     public func fetchTripUpdates(from source: DataSource) async throws -> [RealtimeTripUpdate] {
-        let request = try source.authenticatedRealtimeRequest(for: .tripUpdates)
-        let feedMessage = try await fetchFeedMessage(request: request, cacheKey: "\(source.identifier)_trip_updates", ttl: source.realtimeCacheTTL)
-        return TripUpdateMapper.mapTripUpdates(from: feedMessage)
+        try await fetchFeed(from: source, feedType: .tripUpdates).tripUpdates
     }
 
     public func fetchVehiclePositions(from source: DataSource) async throws -> [RealtimeVehiclePosition] {
-        let request = try source.authenticatedRealtimeRequest(for: .vehiclePositions)
-        let feedMessage = try await fetchFeedMessage(request: request, cacheKey: "\(source.identifier)_vehicle_positions", ttl: source.realtimeCacheTTL)
-        return VehiclePositionMapper.mapVehiclePositions(from: feedMessage)
+        try await fetchFeed(from: source, feedType: .vehiclePositions).vehiclePositions
     }
 
     public func fetchServiceAlerts(from source: DataSource) async throws -> [RealtimeServiceAlert] {
-        let request = try source.authenticatedRealtimeRequest(for: .serviceAlerts)
-        let feedMessage = try await fetchFeedMessage(request: request, cacheKey: "\(source.identifier)_service_alerts", ttl: source.realtimeCacheTTL)
-        return ServiceAlertMapper.mapServiceAlerts(from: feedMessage)
+        try await fetchFeed(from: source, feedType: .serviceAlerts).serviceAlerts
+    }
+
+    // MARK: - Whole-feed fetch
+
+    /// Fetches and decodes the entire ``RealtimeFeed`` for the given feed type.
+    ///
+    /// Subsequent calls within the source's ``DataSource/realtimeCacheTTL``
+    /// return the cached result without making a network request. Use
+    /// ``clearCache()`` to force a fresh fetch.
+    public func fetchFeed(from source: DataSource, feedType: RealtimeFeedType) async throws -> RealtimeFeed {
+        let key = CacheKey(identifier: source.identifier, feedType: feedType)
+        if let entry = cache[key], Date().timeIntervalSince(entry.timestamp) < source.realtimeCacheTTL {
+            return entry.feed
+        }
+
+        let request = try source.authenticatedRealtimeRequest(for: feedType)
+        let (data, response) = try await urlSession.data(for: request)
+
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw RealtimeError.networkError
+        }
+
+        let feed = try decoder.decode(data)
+        cache[key] = CachedEntry(feed: feed, timestamp: Date())
+        return feed
     }
 
     public func clearCache() {
         cache.removeAll(keepingCapacity: true)
     }
 
-    // MARK: - Private
+    // MARK: - Internal cache key
 
-    private func fetchFeedMessage(request: URLRequest, cacheKey: String, ttl: TimeInterval) async throws -> TransitRealtime_FeedMessage {
-        if let cachedData = cache[cacheKey], Date().timeIntervalSince(cachedData.timestamp) < ttl {
-            return cachedData.feedMessage
-        }
-
-        let (data, response) = try await urlSession.data(for: request)
-
-        guard
-            let httpResponse = response as? HTTPURLResponse,
-            httpResponse.statusCode == 200
-        else { throw RealtimeError.networkError }
-
-        let feedMessage = try TransitRealtime_FeedMessage(serializedBytes: data)
-
-        cache[cacheKey] = CachedFeedData(
-            feedMessage: feedMessage,
-            timestamp: Date()
-        )
-
-        return feedMessage
+    private struct CacheKey: Hashable {
+        let identifier: String
+        let feedType: RealtimeFeedType
     }
-}
 
-// MARK: - Internal cache type
-
-private struct CachedFeedData {
-    let feedMessage: TransitRealtime_FeedMessage
-    let timestamp: Date
+    private struct CachedEntry {
+        let feed: RealtimeFeed
+        let timestamp: Date
+    }
 }
