@@ -12,7 +12,7 @@ Add LocomoSwift to your `Package.swift` dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.0.0")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.0.1")
 ]
 ```
 
@@ -72,22 +72,48 @@ if let agencies = feed.agencies {
 // Routes
 if let routes = feed.routes {
     for route in routes {
-        print("Route \(route.shortName): \(route.longName)")
+        let short = route.shortName ?? "?"
+        let long = route.name ?? "Unnamed"
+        print("Route \(short): \(long) (\(route.type))")
     }
 }
 
 // Stops
 if let stops = feed.stops {
-    print("Total stops: \(stops.count)")
+    print("Total stops: \(stops.stops.count)")
 }
 
 // Trips and stop times
 if let trips = feed.trips {
-    for trip in trips.prefix(5) {
+    for trip in trips.trips.prefix(5) {
         print("Trip \(trip.tripID) — \(trip.headSign ?? "unknown")")
     }
 }
+
+// Shapes (optional in GTFS)
+if let shapes = feed.shapes {
+    for shapeID in shapes.shapeIDs {
+        let points = shapes.pointsForShape(shapeID)
+        print("Shape \(shapeID): \(points.count) points")
+    }
+}
 ```
+
+## Parse In-Memory CSV
+
+When you already have GTFS data in memory (custom transport, decompressed bundle, generated fixtures…) you can skip the filesystem entirely. Every collection accepts a CSV string directly:
+
+```swift
+let csv = """
+stop_id,stop_name,stop_lat,stop_lon
+S1,Alpha,48.8584,2.2945
+S2,Bravo,48.8606,2.3376
+"""
+
+let stops = try Stops(from: csv)
+```
+
+The same pattern works for ``Agencies``, ``Routes``, ``Trips``, ``StopTimes`` (which also takes a `timeZone:`), ``CalendarDates``, and ``Shapes``.
 
 ## Keep Extracted Files
 

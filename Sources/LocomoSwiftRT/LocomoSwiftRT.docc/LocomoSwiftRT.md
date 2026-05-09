@@ -38,14 +38,14 @@ Results are automatically cached. Subsequent calls within the cache TTL return c
 
 - ``RealtimeTripUpdate``
 - ``RealtimeStopTimeUpdate``
-- ``RealtimeScheduleRelationship``
-- ``RealtimeStopScheduleRelationship``
+- ``TripScheduleRelationship``
+- ``StopTimeScheduleRelationship``
 
 ### Vehicle Positions
 
 - ``RealtimeVehiclePosition``
-- ``RealtimeCongestionLevel``
-- ``RealtimeOccupancyStatus``
+- ``VehicleStopStatus``
+- ``OccupancyStatus``
 
 ### Service Alerts
 
