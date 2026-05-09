@@ -2,49 +2,35 @@
 //  RealtimeDataSource.swift
 //  LocomoSwift
 //
-//  Created by Jérémie Patot on 14/07/2025.
+//  Three small protocols (ISP) describing what a realtime data source can do.
+//  The umbrella `RealtimeDataSource` typealias preserves the original API
+//  surface so existing consumers don't have to update their conformances.
 //
-
 
 import Foundation
 import LocomoSwiftGTFS
 
-/// Protocol for realtime data sources.
-public protocol RealtimeDataSource {
-
-    /// Fetches trip updates from the given source.
+/// Fetches GTFS Realtime trip updates from a configured ``DataSource``.
+public protocol TripUpdateFetching {
     func fetchTripUpdates(from source: DataSource) async throws -> [RealtimeTripUpdate]
+}
 
-    /// Fetches vehicle positions from the given source.
+/// Fetches GTFS Realtime vehicle positions from a configured ``DataSource``.
+public protocol VehiclePositionFetching {
     func fetchVehiclePositions(from source: DataSource) async throws -> [RealtimeVehiclePosition]
+}
 
-    /// Fetches service alerts from the given source.
+/// Fetches GTFS Realtime service alerts from a configured ``DataSource``.
+public protocol ServiceAlertFetching {
     func fetchServiceAlerts(from source: DataSource) async throws -> [RealtimeServiceAlert]
 }
 
-// MARK: - SIRI SX Lite Preparation
+/// Fetches an entire GTFS Realtime feed (header + every entity type) in one call.
+public protocol RealtimeFeedFetching {
+    func fetchFeed(from source: DataSource, feedType: RealtimeFeedType) async throws -> RealtimeFeed
+}
 
-/// SIRI SX Lite data source (future implementation).
-//public struct SIRIDataSource: RealtimeDataSource {
-//
-//    private let baseURL: URL
-//
-//    public init(baseURL: URL) {
-//        self.baseURL = baseURL
-//    }
-//
-//    public func fetchTripUpdates() async throws -> [RealtimeTripUpdate] {
-//        // TODO: Implement SIRI to GTFS RT conversion
-//        throw RealtimeError.parsingError
-//    }
-//
-//    public func fetchVehiclePositions() async throws -> [RealtimeVehiclePosition] {
-//        // TODO: Implement SIRI to GTFS RT conversion
-//        throw RealtimeError.parsingError
-//    }
-//
-//    public func fetchServiceAlerts() async throws -> [RealtimeServiceAlert] {
-//        // TODO: Implement SIRI to GTFS RT conversion
-//        throw RealtimeError.parsingError
-//    }
-//}
+/// Convenience composition — every realtime source typically conforms to all
+/// four protocols. Consumers can still depend on the smaller protocols if they
+/// only need a subset (preserves the Interface Segregation Principle).
+public typealias RealtimeDataSource = TripUpdateFetching & VehiclePositionFetching & ServiceAlertFetching & RealtimeFeedFetching

@@ -2,45 +2,43 @@
 //  Feed+Realtime.swift
 //  LocomoSwift
 //
-//  Created by Jérémie Patot on 14/07/2025.
-//
 
 import Foundation
 import LocomoSwiftGTFS
 
-// MARK: - Feed Realtime Extensions
-
 extension Feed {
 
-    /// Creates a realtime manager for this feed.
+    /// Creates a realtime manager for this feed, with the default decoder
+    /// and `URLSession.shared` networking.
     public func createRealtimeManager() -> RealtimeManager {
-        return RealtimeManager()
+        RealtimeManager()
     }
 
-    /// Applies realtime updates to the feed.
+    /// Applies realtime updates to the feed. Currently a stub — the GTFS
+    /// static models don't yet carry realtime delay/cancellation state, so
+    /// the input data is accepted and silently dropped.
+    ///
+    /// Use ``RealtimeManager`` directly to query trip updates, vehicle
+    /// positions, and service alerts in the meantime.
     public mutating func applyRealtimeUpdates(
         tripUpdates: [RealtimeTripUpdate] = [],
         vehiclePositions: [RealtimeVehiclePosition] = [],
         serviceAlerts: [RealtimeServiceAlert] = []
     ) {
-        for tripUpdate in tripUpdates {
-            applyTripUpdate(tripUpdate)
-        }
-
-        for vehiclePosition in vehiclePositions {
-            applyVehiclePosition(vehiclePosition)
-        }
-
-        // TODO: Implement alert storage
+        _ = tripUpdates
+        _ = vehiclePositions
+        _ = serviceAlerts
+        // TODO: store delays on `StopTime`, cancellations on `Trip`, and
+        // alerts on a new `Feed.alerts` collection.
     }
 
-    /// Returns the realtime status of a trip.
+    /// Returns the realtime status of a trip — currently a stub returning
+    /// a not-delayed/not-cancelled placeholder.
     public func realtimeStatus(for tripID: String) -> TripRealtimeStatus? {
-        guard let _ = trips?.trips.first(where: { $0.tripID == tripID }) else {
+        guard trips?.trips.contains(where: { $0.tripID == tripID }) == true else {
             return nil
         }
-
-        // TODO: Implement realtime status logic
+        // TODO: derive from applied realtime updates once stored.
         return TripRealtimeStatus(
             tripID: tripID,
             isDelayed: false,
@@ -49,45 +47,28 @@ extension Feed {
             lastUpdate: Date()
         )
     }
-
-    // MARK: - Private Methods
-
-    private mutating func applyTripUpdate(_ tripUpdate: RealtimeTripUpdate) {
-        guard let _ = trips?.trips.firstIndex(where: { $0.tripID == tripUpdate.tripID }) else {
-            return
-        }
-
-        if tripUpdate.scheduleRelationship == .cancelled {
-            // TODO: Add isCancelled property to Trip
-            return
-        }
-
-        for stopTimeUpdate in tripUpdate.stopTimeUpdates {
-            applyStopTimeUpdate(stopTimeUpdate, for: tripUpdate.tripID)
-        }
-    }
-
-    private mutating func applyStopTimeUpdate(_ update: RealtimeStopTimeUpdate, for tripID: String) {
-        guard let _ = stopTimes?.stopTimes.firstIndex(where: {
-            $0.tripID == tripID && $0.stopID == update.stopID
-        }) else {
-            return
-        }
-
-        // TODO: Add delay properties to StopTime
-    }
-
-    private mutating func applyVehiclePosition(_ position: RealtimeVehiclePosition) {
-        // TODO: Implement vehicle position application
-    }
 }
 
 // MARK: - TripRealtimeStatus
 
-public struct TripRealtimeStatus {
+public struct TripRealtimeStatus: Hashable, Sendable {
     public let tripID: String
     public let isDelayed: Bool
     public let averageDelay: TimeInterval
     public let isCancelled: Bool
     public let lastUpdate: Date
+
+    public init(
+        tripID: String,
+        isDelayed: Bool,
+        averageDelay: TimeInterval,
+        isCancelled: Bool,
+        lastUpdate: Date
+    ) {
+        self.tripID = tripID
+        self.isDelayed = isDelayed
+        self.averageDelay = averageDelay
+        self.isCancelled = isCancelled
+        self.lastUpdate = lastUpdate
+    }
 }

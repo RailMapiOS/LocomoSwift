@@ -2,46 +2,61 @@
 //  VehiclePositionMapper.swift
 //  LocomoSwift
 //
-//  Created by Jérémie Patot on 14/07/2025.
-//
-
 
 import Foundation
 import SwiftProtobuf
 
-public struct VehiclePositionMapper {
-    
+enum VehiclePositionMapper {
+
     static func mapVehiclePositions(from feedMessage: TransitRealtime_FeedMessage) -> [RealtimeVehiclePosition] {
-        return feedMessage.entity.compactMap { entity in
-            guard entity.hasVehicle else { return nil }
+        feedMessage.entity.compactMap { entity in
+            guard entity.hasVehicle, !entity.isDeleted else { return nil }
             return mapVehiclePosition(entity.vehicle)
         }
     }
-    
-    private static func mapVehiclePosition(_ vehiclePosition: TransitRealtime_VehiclePosition) -> RealtimeVehiclePosition {
-        let latitude = vehiclePosition.hasPosition ? Double(vehiclePosition.position.latitude) : nil
-        let longitude = vehiclePosition.hasPosition ? Double(vehiclePosition.position.longitude) : nil
-        let bearing = vehiclePosition.hasPosition && vehiclePosition.position.hasBearing ? vehiclePosition.position.bearing : nil
-        let speed = vehiclePosition.hasPosition && vehiclePosition.position.hasSpeed ? vehiclePosition.position.speed : nil
-        
-        let currentStatus = VehicleStopStatus(
-            rawValue: Int(vehiclePosition.currentStatus.rawValue)
-        ) ?? .inTransitTo
-        
-        let occupancyStatus = vehiclePosition.hasOccupancyStatus ? 
-            OccupancyStatus(rawValue: Int(vehiclePosition.occupancyStatus.rawValue)) : nil
-        
+
+    static func mapVehiclePosition(_ proto: TransitRealtime_VehiclePosition) -> RealtimeVehiclePosition {
+        let position: TransitRealtime_Position? = proto.hasPosition ? proto.position : nil
+
         return RealtimeVehiclePosition(
-            tripID: vehiclePosition.hasTrip ? vehiclePosition.trip.tripID : nil,
-            vehicleID: vehiclePosition.vehicle.id,
-            latitude: latitude,
-            longitude: longitude,
-            bearing: bearing,
-            speed: speed,
-            currentStopSequence: vehiclePosition.hasCurrentStopSequence ? vehiclePosition.currentStopSequence : nil,
-            currentStatus: currentStatus,
-            timestamp: Date(timeIntervalSince1970: TimeInterval(vehiclePosition.timestamp)),
-            occupancyStatus: occupancyStatus
+            trip: proto.hasTrip ? TripDescriptorMapper.map(proto.trip) : nil,
+            vehicle: VehicleDescriptorMapper.map(proto.vehicle),
+            latitude: position.flatMap { $0.hasLatitude ? Double($0.latitude) : nil },
+            longitude: position.flatMap { $0.hasLongitude ? Double($0.longitude) : nil },
+            bearing: position.flatMap { $0.hasBearing ? $0.bearing : nil },
+            odometer: position.flatMap { $0.hasOdometer ? $0.odometer : nil },
+            speed: position.flatMap { $0.hasSpeed ? $0.speed : nil },
+            currentStopSequence: proto.hasCurrentStopSequence ? proto.currentStopSequence : nil,
+            stopID: proto.hasStopID ? proto.stopID : nil,
+            currentStatus: VehicleStopStatus(rawValue: Int(proto.currentStatus.rawValue)) ?? .inTransitTo,
+            timestamp: proto.hasTimestamp ? Date(timeIntervalSince1970: TimeInterval(proto.timestamp)) : nil,
+            congestionLevel: proto.hasCongestionLevel
+                ? CongestionLevel(rawValue: Int(proto.congestionLevel.rawValue))
+                : nil,
+            occupancyStatus: proto.hasOccupancyStatus
+                ? OccupancyStatus(rawValue: Int(proto.occupancyStatus.rawValue))
+                : nil,
+            occupancyPercentage: proto.hasOccupancyPercentage ? proto.occupancyPercentage : nil,
+            multiCarriageDetails: proto.multiCarriageDetails.map(mapCarriage)
+        )
+    }
+
+    private static func mapCarriage(_ proto: TransitRealtime_VehiclePosition.CarriageDetails) -> CarriageDetails {
+        // Wire value -1 means "not provided" per the spec.
+        let percentage: Int32?
+        if proto.hasOccupancyPercentage && proto.occupancyPercentage != -1 {
+            percentage = proto.occupancyPercentage
+        } else {
+            percentage = nil
+        }
+        return CarriageDetails(
+            id: proto.hasID ? proto.id : nil,
+            label: proto.hasLabel ? proto.label : nil,
+            occupancyStatus: proto.hasOccupancyStatus
+                ? OccupancyStatus(rawValue: Int(proto.occupancyStatus.rawValue))
+                : nil,
+            occupancyPercentage: percentage,
+            carriageSequence: proto.hasCarriageSequence ? proto.carriageSequence : 0
         )
     }
 }
