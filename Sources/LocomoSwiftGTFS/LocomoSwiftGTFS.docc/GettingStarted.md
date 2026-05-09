@@ -12,7 +12,7 @@ Add LocomoSwift to your `Package.swift` dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.0.1")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.1.1")
 ]
 ```
 

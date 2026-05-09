@@ -11,12 +11,14 @@ A Swift package for parsing **GTFS Static** feeds and consuming **GTFS Realtime*
 
 ## Features
 
-- **GTFS Static** — Parse ZIP or folder-based feeds: agencies, routes, stops, trips, stop times, calendar dates
+- **GTFS Static** — Parse ZIP or folder-based feeds: agencies, routes, stops, trips, stop times, calendar dates, shapes
 - **GTFS Realtime** — Fetch trip updates, vehicle positions, and service alerts from protobuf feeds
 - **DataSource presets** — Pre-configured sources for SNCF, SBB, TaM Montpellier, and more
 - **Custom DataSources** — Inject your own endpoints for any transit provider
 - **API key support** — Built-in authentication via query parameters or HTTP headers
 - **Actor-based concurrency** — Thread-safe realtime cache via Swift's `actor` model
+- **Filesystem-free parsing** — Every collection accepts a CSV string directly, no disk I/O required
+- **Concurrent ZIP parsing** — GTFS files inside an archive are decoded in parallel via `async let`
 - **Modular imports** — Import only what you need: static, realtime, or both
 
 ## Installation
@@ -27,7 +29,7 @@ In your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.0.0")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.1.1")
 ]
 ```
 
@@ -60,9 +62,28 @@ let feed = try await Feed(contentsOfURL: url)
 
 // Access transit data
 feed.agencies?.forEach { print($0.name) }
-feed.routes?.forEach  { print($0.shortName) }
-feed.stops?.forEach   { print($0.name) }
+feed.routes?.forEach   { print($0.shortName ?? "?") }
+feed.stops?.forEach    { print($0.name ?? "Unnamed") }
+feed.shapes?.shapeIDs.forEach { print("Shape: \($0)") }
 ```
+
+### Parse Without the Filesystem
+
+When you already have GTFS data in memory, every collection accepts a CSV string directly:
+
+```swift
+import LocomoSwiftGTFS
+
+let csv = """
+stop_id,stop_name,stop_lat,stop_lon
+S1,Alpha,48.8584,2.2945
+S2,Bravo,48.8606,2.3376
+"""
+
+let stops = try Stops(from: csv)
+```
+
+The same pattern works for `Agencies`, `Routes`, `Trips`, `StopTimes` (also takes a `timeZone:`), `CalendarDates`, and `Shapes`.
 
 ### Fetch GTFS Realtime Data
 
@@ -179,13 +200,14 @@ Authentication is applied automatically to all requests (static downloads and re
 
 ## Documentation
 
-LocomoSwift includes **DocC** documentation. Build it locally:
+LocomoSwift ships with a full **DocC** catalogue for both modules:
 
-```bash
-swift package generate-documentation
-```
+- [`LocomoSwiftGTFS`](Sources/LocomoSwiftGTFS/LocomoSwiftGTFS.docc) — Getting Started, DataSource configuration, working with Shapes
+- [`LocomoSwiftRT`](Sources/LocomoSwiftRT/LocomoSwiftRT.docc) — Fetching realtime data
 
-Or preview it in Xcode: **Product > Build Documentation**.
+The doc is hosted on [Swift Package Index](https://swiftpackageindex.com/RailMapiOS/LocomoSwift/documentation) and rebuilt automatically on every release.
+
+To preview locally, open the package in Xcode and choose **Product > Build Documentation** (⌃⇧⌘D).
 
 ## Contributing
 
