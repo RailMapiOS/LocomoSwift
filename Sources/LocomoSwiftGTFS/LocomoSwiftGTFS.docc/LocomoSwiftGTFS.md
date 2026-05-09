@@ -7,7 +7,7 @@ Parse GTFS Static feeds from ZIP archives or local directories, and configure tr
 **LocomoSwiftGTFS** provides everything you need to load and work with GTFS Static data:
 
 - Download and extract GTFS ZIP feeds from remote URLs
-- Parse standard GTFS files (`agency.txt`, `routes.txt`, `stops.txt`, `trips.txt`, `stop_times.txt`, `calendar_dates.txt`)
+- Parse standard GTFS files (`agency.txt`, `routes.txt`, `stops.txt`, `trips.txt`, `stop_times.txt`, `calendar_dates.txt`, `shapes.txt`)
 - Configure data sources with ``DataSource`` presets or custom endpoints
 - Authenticate with API keys via query parameters or HTTP headers
 - Manage static feed refresh intervals and realtime cache TTLs
@@ -35,6 +35,7 @@ let feed = try await Feed(from: sbb)
 
 - <doc:GettingStarted>
 - <doc:DataSourceConfiguration>
+- <doc:Shapes>
 
 ### Loading Feeds
 
@@ -62,3 +63,5 @@ let feed = try await Feed(from: sbb)
 - ``StopTimes``
 - ``CalendarDate``
 - ``CalendarDates``
+- ``ShapePoint``
+- ``Shapes``

@@ -33,11 +33,14 @@ let updates = try await manager.fetchTripUpdates(from: .sncfTER)
 for update in updates {
     print("Trip \(update.tripID)")
     print("  Route: \(update.routeID ?? "unknown")")
-    print("  Start date: \(update.startDate ?? "unknown")")
+    print("  Last update: \(update.timestamp)")
+    if let delay = update.delay {
+        print("  Trip-level delay: \(delay)s")
+    }
 
     for stopUpdate in update.stopTimeUpdates {
         if let delay = stopUpdate.arrivalDelay, delay > 0 {
-            print("  Stop \(stopUpdate.stopID ?? "?"): +\(delay)s late")
+            print("  Stop \(stopUpdate.stopID): +\(delay)s late")
         }
     }
 }
@@ -51,9 +54,14 @@ Vehicle positions provide the current GPS location of transit vehicles:
 let positions = try await manager.fetchVehiclePositions(from: .tamMontpellier)
 
 for position in positions {
-    print("Vehicle \(position.vehicleID ?? "unknown")")
-    print("  Location: \(position.latitude), \(position.longitude)")
-    print("  Speed: \(position.speed ?? 0) m/s")
+    print("Vehicle \(position.vehicleID)")
+    if let lat = position.latitude, let lon = position.longitude {
+        print("  Location: \(lat), \(lon)")
+    }
+    if let speed = position.speed {
+        print("  Speed: \(speed) m/s")
+    }
+    print("  Status: \(position.currentStatus)")
 }
 ```
 
