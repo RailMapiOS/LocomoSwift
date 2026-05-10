@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreGraphics
 
 // MARK: RouteField
 
@@ -121,8 +120,8 @@ public struct Route: Hashable, Identifiable {
   public var details: String?
   public var type: RouteType = .bus
   public var url: URL?
-  public var color: CGColor?
-  public var textColor: CGColor?
+  public var color: LSColor?
+  public var textColor: LSColor?
   public var sortOrder: UInt?
   public var pickupPolicy: PickupDropOffPolicy?
   public var dropOffPolicy: PickupDropOffPolicy?
@@ -144,8 +143,8 @@ public struct Route: Hashable, Identifiable {
         details: String? = nil,
         type: RouteType = .bus,
         url: URL? = nil,
-        color: CGColor? = nil,
-        textColor: CGColor? = nil,
+        color: LSColor? = nil,
+        textColor: LSColor? = nil,
         sortOrder: UInt? = nil,
         pickupPolicy: PickupDropOffPolicy? = nil,
         dropOffPolicy: PickupDropOffPolicy? = nil
@@ -182,7 +181,7 @@ public struct Route: Hashable, Identifiable {
         case .url:
           try field.assignOptionalURLTo(&self, for: header)
         case .color, .textColor:
-          try field.assignOptionalCGColorTo(&self, for: header)
+          try field.assignOptionalLSColorTo(&self, for: header)
         case .type:
           try field.assignRouteTypeTo(&self, for: header)
         case .pickupPolicy, .dropOffPolicy:
@@ -302,7 +301,7 @@ public struct Routes: Identifiable {
 
   /// Initialize routes dataset from file.
   init(from url: URL) throws {
-    try self.init(from: String(contentsOf: url))
+    try self.init(from: String(contentsOf: url, encoding: .utf8))
   }
 }
 

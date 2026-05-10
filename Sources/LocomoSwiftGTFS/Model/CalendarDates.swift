@@ -132,7 +132,7 @@ public struct CalendarDates: Identifiable, RandomAccessCollection, Sendable {
 
     /// Initializes from a GTFS file.
     public init(from url: URL) throws {
-        try self.init(from: String(contentsOf: url))
+        try self.init(from: String(contentsOf: url, encoding: .utf8))
     }
 }
 

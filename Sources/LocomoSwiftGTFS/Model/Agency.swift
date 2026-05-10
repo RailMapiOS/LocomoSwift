@@ -278,7 +278,7 @@ public struct Agencies: Identifiable, RandomAccessCollection {
 
     /// Initialize agencies dataset from file.
     public init(from url: URL) throws {
-        try self.init(from: String(contentsOf: url))
+        try self.init(from: String(contentsOf: url, encoding: .utf8))
     }
 }
 

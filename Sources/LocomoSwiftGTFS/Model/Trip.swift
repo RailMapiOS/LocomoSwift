@@ -196,7 +196,7 @@ public struct Trips: Identifiable {
 
     /// Initialize trips dataset from file.
     init(from url: URL) throws {
-        try self.init(from: String(contentsOf: url))
+        try self.init(from: String(contentsOf: url, encoding: .utf8))
     }
 }
 

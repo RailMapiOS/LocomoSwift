@@ -3,7 +3,7 @@
 <img src="https://github.com/user-attachments/assets/4a4a8f7a-360f-4b5d-ac4b-c3e9c54cae7d" alt="LocomoSwift Logo" width="150" align="right">
 
 ![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange)
-![Platforms](https://img.shields.io/badge/Platforms-iOS%2015%20|%20macOS%2012%20|%20tvOS%2015%20|%20watchOS%208-blue)
+![Platforms](https://img.shields.io/badge/Platforms-iOS%2015%20|%20macOS%2012%20|%20tvOS%2015%20|%20watchOS%208%20|%20Linux-blue)
 ![SPM](https://img.shields.io/badge/SPM-compatible-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
@@ -13,6 +13,7 @@ A Swift package for parsing **GTFS Static** feeds and consuming **GTFS Realtime*
 
 - **GTFS Static** — Parse ZIP or folder-based feeds: agencies, routes, stops, trips, stop times, calendar dates, shapes
 - **GTFS Realtime — full v2.0 schema** — Trip updates with stop time properties, vehicle positions with congestion / occupancy / multi-carriage details, service alerts with severity and translated text/images, and realtime shapes
+- **Cross-platform** — Compiles on iOS / macOS / tvOS / watchOS **and Linux** (server-side Swift, Vapor, Docker on x86_64 and ARM64)
 - **DataSource presets** — Pre-configured sources for SNCF, SBB, TaM Montpellier, and more
 - **Custom DataSources** — Inject your own endpoints for any transit provider
 - **API key support** — Built-in authentication via query parameters or HTTP headers
@@ -32,7 +33,7 @@ In your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.2.0")
+    .package(url: "https://github.com/RailMapiOS/LocomoSwift.git", from: "1.3.0")
 ]
 ```
 
