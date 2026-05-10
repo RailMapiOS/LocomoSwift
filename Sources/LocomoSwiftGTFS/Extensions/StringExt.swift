@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import CoreGraphics
-import CoreLocation
 
 // MARK: Substring
 
@@ -158,43 +156,44 @@ extension String {
   }
 
   /**
-   The `CGColor` representation of `self` or `nil` if `self` cannot be
-     represented as a `CGColor`.
-   
-   `color` returns a `CGColor` representation of `self` whenever `self`
+   The ``LSColor`` representation of `self` or `nil` if `self` cannot be
+     represented as a color.
+
+   `color` returns an ``LSColor`` representation of `self` whenever `self`
      consists of either six or eight hexadecimal characters, optionally preceded
      by the octothorp (`#`) character; it returns `nil` otherwise. The color
      encoding should be RGB (for six characters) or RGBA (for eight characters).
      If the encoding is six characters, then a value of 1.0 will be used as an
      alpha value.
+
+   On Apple platforms, bridge to `CGColor` via ``LSColor/cgColor``.
    - Tag: String-color
    */
-  var color: CGColor? {
+  var color: LSColor? {
     var hexString = self
-        guard !hexString.isEmpty else { return nil }
+    guard !hexString.isEmpty else { return nil }
     if hexString.hasPrefix("#") {
       let start = self.index(hexString.startIndex, offsetBy: 1)
       hexString = String(self[start...])
     }
-    let red, green, blue, alpha: CGFloat
+    let red, green, blue, alpha: Double
     var hexNumber: UInt64 = 0
     let scanner = Scanner(string: hexString)
     if scanner.scanHexInt64(&hexNumber) {
       if hexString.count == 8 {
-        red   = CGFloat((hexNumber & 0xff000000) >> 24) / 255
-        green = CGFloat((hexNumber & 0x00ff0000) >> 16) / 255
-        blue  = CGFloat((hexNumber & 0x0000ff00) >> 8) / 255
-        alpha = CGFloat( hexNumber & 0x000000ff) / 255
+        red   = Double((hexNumber & 0xff000000) >> 24) / 255
+        green = Double((hexNumber & 0x00ff0000) >> 16) / 255
+        blue  = Double((hexNumber & 0x0000ff00) >>  8) / 255
+        alpha = Double( hexNumber & 0x000000ff) / 255
       } else if hexString.count == 6 {
-        red   = CGFloat((hexNumber & 0x00ff0000) >> 16) / 255
-        green = CGFloat((hexNumber & 0x0000ff00) >> 8) / 255
-        blue  = CGFloat( hexNumber & 0x000000ff) / 255
+        red   = Double((hexNumber & 0x00ff0000) >> 16) / 255
+        green = Double((hexNumber & 0x0000ff00) >>  8) / 255
+        blue  = Double( hexNumber & 0x000000ff) / 255
         alpha = 1.0
       } else {
         return nil
       }
-            return CGColor(colorSpace: CGColorSpaceCreateDeviceRGB(),
-                                         components: [red, green, blue, alpha])
+      return LSColor(red: red, green: green, blue: blue, alpha: alpha)
     }
     return nil
   }
@@ -367,14 +366,14 @@ extension String {
   }
 
   /**
-   Set `self` as a value for an optional `URL` field in `instance`.
-   - Tag: String-assignOptionalCGColorTo
+   Set `self` as the ``LSColor`` value corresponding to `field` within `instance`.
+   - Tag: String-assignOptionalLSColorTo
    */
-  func assignOptionalCGColorTo<InstanceType, FieldType>(
+  func assignOptionalLSColorTo<InstanceType, FieldType>(
         _ instance: inout InstanceType,
         for field: FieldType)
   throws where FieldType: KeyPathVending {
-    guard let path = field.path as? WritableKeyPath<InstanceType, CGColor?>
+    guard let path = field.path as? WritableKeyPath<InstanceType, LSColor?>
         else {
       throw LSAssignError.invalidPath
     }
@@ -391,14 +390,15 @@ extension String {
   }
 
   /**
-   - Tag: String-assignOptionalCLLocationDegreesTo
+   Set `self` as the optional `Double` value corresponding to `field`
+   within `instance`. Used for latitude/longitude fields.
+   - Tag: String-assignOptionalDoubleTo
    */
-  func assignOptionalCLLocationDegreesTo<InstanceType, FieldType>(
+  func assignOptionalDoubleTo<InstanceType, FieldType>(
         _ instance: inout InstanceType,
         for field: FieldType
     ) throws where FieldType: KeyPathVending {
-    guard let path = field.path
-                        as? WritableKeyPath<InstanceType, CLLocationDegrees?>
+    guard let path = field.path as? WritableKeyPath<InstanceType, Double?>
         else {
       throw LSAssignError.invalidPath
     }
@@ -407,11 +407,11 @@ extension String {
             instance[keyPath: path] = nil
             return
         }
-    guard let locationDegrees = Double(trimmed)
+    guard let value = Double(trimmed)
         else {
       throw LSAssignError.invalidValue
     }
-    instance[keyPath: path] = locationDegrees
+    instance[keyPath: path] = value
   }
 
     func assignLocaleTo<InstanceType, FieldType>(

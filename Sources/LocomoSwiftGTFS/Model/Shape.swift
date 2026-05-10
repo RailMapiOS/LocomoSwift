@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreLocation
 
 // MARK: ShapeField
 
@@ -57,16 +56,16 @@ public enum ShapeField: String, Hashable, KeyPathVending, Sendable {
 public struct ShapePoint: Hashable, Identifiable {
     public let id = UUID()
     public var shapeID: LSID = ""
-    public var latitude: CLLocationDegrees?
-    public var longitude: CLLocationDegrees?
+    public var latitude: Double?
+    public var longitude: Double?
     public var sequence: UInt = 0
     public var distanceTraveled: Double?
     public var nonstandard: String? = nil
 
     public init(
         shapeID: LSID = "",
-        latitude: CLLocationDegrees? = nil,
-        longitude: CLLocationDegrees? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
         sequence: UInt = 0,
         distanceTraveled: Double? = nil
     ) {
@@ -89,7 +88,7 @@ public struct ShapePoint: Hashable, Identifiable {
                 case .shapeID:
                     try field.assignStringTo(&self, for: header)
                 case .latitude, .longitude:
-                    try field.assignOptionalCLLocationDegreesTo(&self, for: header)
+                    try field.assignOptionalDoubleTo(&self, for: header)
                 case .sequence:
                     try field.assignUIntTo(&self, for: header)
                 case .distanceTraveled:
@@ -171,7 +170,7 @@ public struct Shapes: Identifiable {
 
     /// Initialize shapes dataset from file.
     public init(from url: URL) throws {
-        try self.init(from: String(contentsOf: url))
+        try self.init(from: String(contentsOf: url, encoding: .utf8))
     }
 
     /// Returns all points for a given shape ID, sorted by sequence number.

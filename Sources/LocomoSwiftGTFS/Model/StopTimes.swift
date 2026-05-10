@@ -269,7 +269,7 @@ public struct StopTimes: Identifiable {
 
     /// Initialize stop times dataset from file.
     init(from url: URL, timeZone: TimeZone) throws {
-        try self.init(from: String(contentsOf: url), timeZone: timeZone)
+        try self.init(from: String(contentsOf: url, encoding: .utf8), timeZone: timeZone)
     }
 }
 

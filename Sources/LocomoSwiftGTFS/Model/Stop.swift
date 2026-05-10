@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreLocation
 
 // MARK: StopField
 
@@ -104,8 +103,8 @@ public struct Stop: Hashable, Identifiable {
   public var code: StopCode?
   public var name: String?
   public var details: String?
-  public var latitude: CLLocationDegrees?
-  public var longitude: CLLocationDegrees?
+  public var latitude: Double?
+  public var longitude: Double?
   public var zoneID: LSID?
   public var url: URL?
   public var locationType: StopLocationType?
@@ -121,8 +120,8 @@ public struct Stop: Hashable, Identifiable {
         code: StopCode? = nil,
         name: String? = nil,
         details: String? = nil,
-        latitude: CLLocationDegrees? = nil,
-        longitude: CLLocationDegrees? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
         zoneID: LSID? = nil,
         url: URL? = nil,
         locationType: StopLocationType? = nil,
@@ -170,7 +169,7 @@ public struct Stop: Hashable, Identifiable {
         case .timeZone:
           try field.assignOptionalTimeZoneTo(&self, for: header)
         case .latitude, .longitude:
-          try field.assignOptionalCLLocationDegreesTo(&self, for: header)
+          try field.assignOptionalDoubleTo(&self, for: header)
         case .locationType:
           break
         case .accessibility:
@@ -280,7 +279,7 @@ public struct Stops: Identifiable {
 
   /// Initialize stops dataset from file.
   init(from url: URL) throws {
-    try self.init(from: String(contentsOf: url))
+    try self.init(from: String(contentsOf: url, encoding: .utf8))
   }
 }
 
