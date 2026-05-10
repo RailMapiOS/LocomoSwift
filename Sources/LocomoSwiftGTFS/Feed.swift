@@ -90,7 +90,7 @@ public enum LSSomethingError: Error {
 ///
 /// A `Feed` contains various types of data related to agencies, routes, stops, trips, and more.
 /// - Tag: Feed
-public struct Feed: Identifiable {
+public struct Feed: Identifiable, Sendable {
     /// A unique identifier for the feed.
     public let id = UUID()
     /// Agencies associated with the feed.

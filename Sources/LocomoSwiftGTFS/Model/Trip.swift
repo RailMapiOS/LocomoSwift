@@ -59,7 +59,7 @@ public enum TripField: String, Hashable, KeyPathVending, Sendable {
 // MARK: - Direction
 
 /// - Tag: Direction
-public enum Direction: UInt, Hashable {
+public enum Direction: UInt, Hashable, Sendable {
     case inbound = 0
     case outbound = 1
 }
@@ -67,7 +67,7 @@ public enum Direction: UInt, Hashable {
 // MARK: - Trip
 
 /// A representation of a single Trip record.
-public struct Trip: Hashable, Identifiable {
+public struct Trip: Hashable, Identifiable, Sendable {
     public let id = UUID()
     public var routeID: LSID = ""
     public var serviceID: LSID = ""
@@ -150,7 +150,7 @@ extension Trip: CustomStringConvertible {
 // MARK: - Trips
 
 /// - Tag: Trips
-public struct Trips: Identifiable {
+public struct Trips: Identifiable, Sendable {
     public let id = UUID()
     public var headerFields = [TripField]()
     public var trips = [Trip]()

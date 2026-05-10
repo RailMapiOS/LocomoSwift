@@ -24,7 +24,7 @@ import Foundation
 /// ```swift
 ///   let gtfsField = StopTimeField.details.rawValue  //  Returns "route_desc"
 /// ```
-public enum StopTimeField: String, Hashable, KeyPathVending {
+public enum StopTimeField: String, Hashable, KeyPathVending, Sendable {
     /// Trip ID field.
     case tripID = "trip_id"
     /// Trip arrival field.
@@ -74,7 +74,7 @@ public enum StopTimeField: String, Hashable, KeyPathVending {
 // MARK: - StopTime
 
 /// A representation of a single StopTime record.
-public struct StopTime: Hashable, Identifiable {
+public struct StopTime: Hashable, Identifiable, Sendable {
     public var id = UUID()
     public var tripID: LSID = ""
     public var arrival: Date?
@@ -222,7 +222,7 @@ extension StopTime: CustomStringConvertible {
 // MARK: - StopTimes
 
 /// - Tag: StopTimes
-public struct StopTimes: Identifiable {
+public struct StopTimes: Identifiable, Sendable {
     public let id = UUID()
     public var headerFields = [StopTimeField]()
     public var stopTimes = [StopTime]()

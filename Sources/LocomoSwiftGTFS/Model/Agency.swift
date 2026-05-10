@@ -62,7 +62,7 @@ public enum AgencyField: String, Hashable, KeyPathVending, Sendable {
 // MARK: - Agency
 
 /// A representation of an Agency record.
-public struct Agency: Hashable, Identifiable {
+public struct Agency: Hashable, Identifiable, Sendable {
     
   /// A globally unique identifier. Because GTFS does not guarantee
   /// that IDs will be unique
@@ -193,7 +193,7 @@ extension Agency: CustomDebugStringConvertible {
 // MARK: - Agencies
 
 /// A representation of a complete Agency dataset.
-public struct Agencies: Identifiable, RandomAccessCollection {
+public struct Agencies: Identifiable, RandomAccessCollection, Sendable {
     public var startIndex: Int {
         return agencies.startIndex
     }

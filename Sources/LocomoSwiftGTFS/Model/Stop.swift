@@ -81,7 +81,7 @@ public enum StopField: String, Hashable, KeyPathVending, Sendable {
 public typealias StopCode = String
 
 /// - Tag: StopLocationType
-public enum StopLocationType: UInt, Hashable {
+public enum StopLocationType: UInt, Hashable, Sendable {
   case stopOrPlatform = 0
   case station = 1
   case entranceOrExit = 2
@@ -90,14 +90,14 @@ public enum StopLocationType: UInt, Hashable {
 }
 
 /// - Tag: Accessibility
-public enum Accessibility: UInt, Hashable {
+public enum Accessibility: UInt, Hashable, Sendable {
   case unknownOrInherits = 0
   case partialOrFull = 1
   case none = 2
 }
 
 /// A representation of a single Stop record.
-public struct Stop: Hashable, Identifiable {
+public struct Stop: Hashable, Identifiable, Sendable {
   public let id = UUID()
   public var stopID: LSID = ""
   public var code: StopCode?
@@ -233,7 +233,7 @@ extension Stop: CustomStringConvertible {
 // MARK: - Stops
 
 /// A representation of a complete Stops dataset.
-public struct Stops: Identifiable {
+public struct Stops: Identifiable, Sendable {
   public let id = UUID()
   public var headerFields = [StopField]()
   public var stops = [Stop]()
