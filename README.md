@@ -156,6 +156,22 @@ let feed = try await Feed(from: mySource)
 let updates = try await manager.fetchTripUpdates(from: mySource)
 ```
 
+### Server-Side Swift / Vapor on Linux
+
+Since 1.3.0, LocomoSwift compiles on Linux — perfect for a Vapor backend that aggregates feeds and exposes them over a REST API. Tested on `swift:6.2-jammy` Docker images for both x86_64 and ARM64 (Raspberry Pi, AWS Graviton).
+
+```swift
+import Vapor
+import LocomoSwiftGTFS
+
+func boot(_ app: Application) async throws {
+    app.get("feeds", "sncf", "stops") { req async throws -> [StopDTO] in
+        let feed = try await Feed(from: .sncfTER)
+        return feed.stops?.stops.map(StopDTO.init) ?? []
+    }
+}
+```
+
 ### API Key Authentication
 
 Some providers (like Swiss SBB) require an API key. LocomoSwift supports two authentication methods:
