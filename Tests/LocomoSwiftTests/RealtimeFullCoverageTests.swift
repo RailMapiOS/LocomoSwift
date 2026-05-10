@@ -10,6 +10,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 import LocomoSwift
 import LocomoSwiftGTFS

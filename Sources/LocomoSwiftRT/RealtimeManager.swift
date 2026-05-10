@@ -11,6 +11,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import LocomoSwiftGTFS
 
 public actor RealtimeManager: RealtimeDataSource {
