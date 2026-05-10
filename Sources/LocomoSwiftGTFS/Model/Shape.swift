@@ -53,7 +53,7 @@ public enum ShapeField: String, Hashable, KeyPathVending, Sendable {
 // MARK: - ShapePoint
 
 /// A representation of a single point in a GTFS shape.
-public struct ShapePoint: Hashable, Identifiable {
+public struct ShapePoint: Hashable, Identifiable, Sendable {
     public let id = UUID()
     public var shapeID: LSID = ""
     public var latitude: Double?
@@ -124,7 +124,7 @@ extension ShapePoint: CustomStringConvertible {
 /// A collection of shape points parsed from a GTFS shapes.txt file.
 ///
 /// - Tag: Shapes
-public struct Shapes: Identifiable {
+public struct Shapes: Identifiable, Sendable {
     public let id = UUID()
     public var headerFields = [ShapeField]()
     public var points = [ShapePoint]()

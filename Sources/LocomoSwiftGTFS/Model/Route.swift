@@ -73,7 +73,7 @@ public enum RouteField: String, Hashable, KeyPathVending, Sendable {
 
 // MARK: - RouteField
 
-public enum RouteType: UInt, Hashable, CustomStringConvertible {
+public enum RouteType: UInt, Hashable, Sendable, CustomStringConvertible {
   case tram = 0
   case subway = 1
   case rail = 2
@@ -101,7 +101,7 @@ public enum RouteType: UInt, Hashable, CustomStringConvertible {
   }
 }
 
-public enum PickupDropOffPolicy: UInt, Hashable {
+public enum PickupDropOffPolicy: UInt, Hashable, Sendable {
   case continuous = 0
   case none = 1
   case coordinateWithAgency = 2
@@ -111,7 +111,7 @@ public enum PickupDropOffPolicy: UInt, Hashable {
 // MARK: - Route
 
 /// A representation of a single Route record.
-public struct Route: Hashable, Identifiable {
+public struct Route: Hashable, Identifiable, Sendable {
   public let id = UUID()
   public var routeID: LSID = ""
   public var agencyID: LSID?
@@ -251,7 +251,7 @@ extension Route: CustomStringConvertible {
 // MARK: - Routes
 
 /// A representation of a complete Route dataset.
-public struct Routes: Identifiable {
+public struct Routes: Identifiable, Sendable {
   public let id = UUID()
   public var headerFields = [RouteField]()
     public var routes: [Route] = []
