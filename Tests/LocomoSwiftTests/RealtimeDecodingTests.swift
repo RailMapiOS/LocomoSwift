@@ -177,4 +177,31 @@ struct RealtimeDecodingTests {
             _ = try await manager.fetchTripUpdates(from: source)
         }
     }
+
+    @Test("RealtimeManager.fetchFeed returns a fully populated RealtimeFeed via the injected session and decoder")
+    func realtimeManagerFetchesEntireFeed() async throws {
+        // Reuse the rich fixture from RealtimeFullCoverageTests so we exercise
+        // every entity kind in one round-trip.
+        let bytes = try RealtimeFullCoverageTests.sharedRichFeedMessage().serializedBytes() as Data
+        let session = MockURLProtocol.makeSession()
+        MockURLProtocol.handler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, bytes)
+        }
+        defer { MockURLProtocol.reset() }
+
+        let manager = RealtimeManager(urlSession: session)
+        let source = DataSource(
+            identifier: "rich-mock",
+            displayName: "Rich Mock",
+            realtimeFeeds: [.tripUpdates: URL(string: "https://example.com/rt")!]
+        )
+
+        let feed = try await manager.fetchFeed(from: source, feedType: .tripUpdates)
+        #expect(feed.tripUpdates.count == 1)
+        #expect(feed.vehiclePositions.count == 1)
+        #expect(feed.serviceAlerts.count == 1)
+        #expect(feed.shapes.count == 1)
+        #expect(feed.header.gtfsRealtimeVersion == "2.0")
+    }
 }

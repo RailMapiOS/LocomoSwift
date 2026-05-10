@@ -414,32 +414,11 @@ struct RealtimeFullCoverageTests {
         #expect(cause.rawValue == rawValue)
     }
 
-    // MARK: - RealtimeManager.fetchFeed via mock URLSession
-
-    @Test("RealtimeManager.fetchFeed returns a fully populated RealtimeFeed via the injected session and decoder")
-    func managerFetchesEntireFeed() async throws {
-        let bytes = try Self.makeRichFeedMessage().serializedBytes() as Data
-        let session = MockURLProtocol.makeSession()
-        MockURLProtocol.handler = { request in
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, bytes)
-        }
-        defer { MockURLProtocol.reset() }
-
-        let manager = RealtimeManager(urlSession: session)
-        let source = DataSource(
-            identifier: "rich-mock",
-            displayName: "Rich Mock",
-            realtimeFeeds: [.tripUpdates: URL(string: "https://example.com/rt")!]
-        )
-
-        let feed = try await manager.fetchFeed(from: source, feedType: .tripUpdates)
-        #expect(feed.tripUpdates.count == 1)
-        #expect(feed.vehiclePositions.count == 1)
-        #expect(feed.serviceAlerts.count == 1)
-        #expect(feed.shapes.count == 1)
-        #expect(feed.header.gtfsRealtimeVersion == "2.0")
-    }
+    // Note: the network-roundtrip test for fetchFeed lives in
+    // RealtimeDecodingTests so all MockURLProtocol-using tests share the
+    // same .serialized suite (Swift Testing serializes within a suite, not
+    // across suites — running them in two parallel suites would race on
+    // MockURLProtocol's static handler).
 
     @Test("ProtobufFeedMessageDecoder.decode throws RealtimeError.parsingError for malformed bytes")
     func protobufDecoderThrowsOnGarbage() throws {
@@ -447,5 +426,11 @@ struct RealtimeFullCoverageTests {
         #expect(throws: RealtimeError.self) {
             _ = try decoder.decode(Data([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]))
         }
+    }
+
+    /// Exposed package-internally so `RealtimeDecodingTests` can reuse the
+    /// rich fixture for its `fetchFeed` end-to-end test.
+    static func sharedRichFeedMessage() -> TransitRealtime_FeedMessage {
+        makeRichFeedMessage()
     }
 }
