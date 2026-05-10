@@ -65,3 +65,7 @@ let feed = try await Feed(from: sbb)
 - ``CalendarDates``
 - ``ShapePoint``
 - ``Shapes``
+
+### Cross-Platform Types
+
+- ``LSColor``

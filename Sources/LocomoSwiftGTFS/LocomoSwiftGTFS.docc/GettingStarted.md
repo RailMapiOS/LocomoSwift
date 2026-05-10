@@ -123,6 +123,63 @@ By default, temporary files are removed after parsing. To keep them (useful for 
 let feed = try await Feed(contentsOfURL: url, keepFiles: true)
 ```
 
+## Working with Route Colors
+
+Routes carry their brand colors as ``LSColor`` — a portable RGBA value type that works on every platform LocomoSwift supports, including Linux.
+
+```swift
+if let color = route.color {
+    print("RGBA: \(color.red), \(color.green), \(color.blue), \(color.alpha)")
+}
+```
+
+On Apple platforms, a convenience getter bridges to `CGColor` for direct use with UIKit / AppKit / SwiftUI:
+
+```swift
+#if canImport(CoreGraphics)
+let cg = route.color?.cgColor
+#endif
+```
+
+## Use on Linux / Server-Side
+
+Since version 1.3.0, LocomoSwiftGTFS compiles and runs on Linux, making it usable from a server-side Swift app — for example a Vapor backend that aggregates GTFS feeds and exposes them over a REST API:
+
+```swift
+import Vapor
+import LocomoSwiftGTFS
+
+func boot(_ app: Application) async throws {
+    app.get("feeds", "sncf", "stops") { req async throws -> [StopDTO] in
+        let feed = try await Feed(from: .sncfTER)
+        return feed.stops?.stops.map(StopDTO.init) ?? []
+    }
+}
+```
+
+Tested on Linux x86_64 and ARM64 (Raspberry Pi 4/5, AWS Graviton) via the `swift:6.2-jammy` Docker image.
+
+## Migrating from 1.2.x
+
+Version 1.3.0 introduces a small breaking change to drop CoreGraphics from the package's surface:
+
+| Before (1.2.x) | After (1.3.0) | Migration |
+|---|---|---|
+| `Route.color: CGColor?` | `Route.color: LSColor?` | Use `route.color?.cgColor` for the previous Apple-only `CGColor` |
+| `Route.textColor: CGColor?` | `Route.textColor: LSColor?` | Same as above |
+| `Stop.latitude: CLLocationDegrees?` | `Stop.latitude: Double?` | Transparent — `CLLocationDegrees` is a typealias for `Double` |
+| `ShapePoint.latitude` / `.longitude` | Same | Same |
+
+If your app only used `route.color` for SwiftUI / UIKit display, the migration is one line per call site:
+
+```swift
+// Before
+imageView.tintColor = UIColor(cgColor: route.color!)
+
+// After
+imageView.tintColor = UIColor(cgColor: route.color!.cgColor)
+```
+
 ## Next Steps
 
 - Learn about configuring custom data sources in <doc:DataSourceConfiguration>
